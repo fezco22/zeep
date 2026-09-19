@@ -29,17 +29,18 @@ class Sim {
       contract,
       sampleContractAddress(),
       c.currentPrivateState,
-      c.currentContractState,
+      c.currentContractState.data, // ChargedState
       c.currentZswapLocalState,
     );
   }
 
   private async call(id: "register" | "pay" | "claim", arg: Uint8Array) {
-    const ctx = createCircuitContext(id, this.address, this.zswap, this.state, this.ps);
+    // compact-runtime 0.16: createCircuitContext(address, zswap, contractState, privateState)
+    const ctx = createCircuitContext(this.address, this.zswap, this.state, this.ps);
     const res = await this.contract.circuits[id](ctx as any, arg);
-    this.state = res.context.callContext.currentQueryContext.state;
-    this.ps = res.context.callContext.currentPrivateState as ZeepPrivateState;
-    this.zswap = res.context.callContext.currentZswapLocalState;
+    this.state = res.context.currentQueryContext.state;
+    this.ps = res.context.currentPrivateState as ZeepPrivateState;
+    this.zswap = res.context.currentZswapLocalState;
     return res;
   }
 
