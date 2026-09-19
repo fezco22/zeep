@@ -59,8 +59,7 @@ async function main(): Promise<void> {
   }
   logger.info(`NIGHT balance: ${nightBalance}`);
 
-  const dustTx = await generateDust(logger, seed, unshielded, walletProvider.wallet);
-  if (dustTx) await syncWallet(logger, walletProvider.wallet);
+  await generateDust(logger, walletProvider.wallet, walletProvider.unshieldedKeystore);
 
   const zkConfigPath = resolve(process.cwd(), "managed", "zeep");
   const zkConfigProvider = new NodeZkConfigProvider<"register" | "pay" | "claim">(zkConfigPath);

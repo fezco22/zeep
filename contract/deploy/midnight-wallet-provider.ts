@@ -92,7 +92,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
   ): Promise<MidnightWalletProvider> {
     const dustOptions: DustWalletOptions = {
       ledgerParams: LedgerParameters.initialParameters(),
-      additionalFeeOverhead: 1_000n,
+      additionalFeeOverhead: 300_000_000_000_000n,
       feeBlocksMargin: 5,
     };
     const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);

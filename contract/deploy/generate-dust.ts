@@ -1,54 +1,49 @@
 // Register NIGHT UTXOs for DUST generation so the wallet can pay tx fees.
-// Adapted from example-bboard bboard-cli/src/generate-dust.ts (Apache-2.0).
+// Follows the midnight-js skill flow: no dust.waitForSyncedState() (which hangs
+// on Preprod); register the available NIGHT UTXOs directly (the registration
+// covers its own fee) and wait for a positive DUST balance to accrue.
 import { type WalletFacade } from "@midnight-ntwrk/wallet-sdk-facade";
-import { createKeystore, UnshieldedWalletState } from "@midnight-ntwrk/wallet-sdk-unshielded-wallet";
 import { Logger } from "pino";
-import { HDWallet, Roles } from "@midnight-ntwrk/wallet-sdk-hd";
-import { getNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import * as rx from "rxjs";
 
-export const getUnshieldedSeed = (seed: string): Uint8Array => {
-  const seedBuffer = Buffer.from(seed, "hex");
-  const hdWalletResult = HDWallet.fromSeed(seedBuffer);
-  const { hdWallet } = hdWalletResult as { type: "seedOk"; hdWallet: HDWallet };
-  const derivationResult = hdWallet.selectAccount(0).selectRole(Roles.NightExternal).deriveKeyAt(0);
-  if (derivationResult.type === "keyOutOfBounds") {
-    throw new Error("Key derivation out of bounds");
-  }
-  return derivationResult.key;
+type UnshieldedKeystore = {
+  getPublicKey(): any;
+  signData(payload: Uint8Array): any;
 };
 
 export const generateDust = async (
   logger: Logger,
-  walletSeed: string,
-  unshieldedState: UnshieldedWalletState,
   walletFacade: WalletFacade,
+  keystore: UnshieldedKeystore,
 ): Promise<string | undefined> => {
-  const dustState = await walletFacade.dust.waitForSyncedState();
-  const networkId = getNetworkId();
-  const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
-  const utxos = unshieldedState.availableCoins.filter(
-    (coin) => !coin.meta.registeredForDustGeneration,
-  );
-  if (utxos.length === 0) {
-    logger.info("No unregistered UTXOs found for dust generation.");
+  const state: any = await rx.firstValueFrom(walletFacade.state());
+  if (state.dust.balance(new Date()) > 0n) {
+    logger.info("DUST already available");
     return;
   }
-  logger.info(`Generating dust with ${utxos.length} UTXOs...`);
+  const utxos = state.unshielded.availableCoins.filter(
+    (coin: any) => coin.meta?.registeredForDustGeneration !== true,
+  );
+  if (utxos.length === 0) {
+    logger.info("No unregistered NIGHT UTXOs for dust generation.");
+    return;
+  }
+  logger.info(`Registering ${utxos.length} NIGHT UTXO(s) for DUST generation...`);
   const recipe = await walletFacade.registerNightUtxosForDustGeneration(
     utxos,
-    unshieldedKeystore.getPublicKey(),
-    (payload) => unshieldedKeystore.signData(payload),
-    dustState.address,
+    keystore.getPublicKey(),
+    (payload: Uint8Array) => keystore.signData(payload),
   );
   const transaction = await walletFacade.finalizeRecipe(recipe);
   const txId = await walletFacade.submitTransaction(transaction);
+  logger.info(`DUST registration tx submitted: ${txId}. Waiting for DUST to accrue...`);
   const dustBalance = await rx.firstValueFrom(
     walletFacade.state().pipe(
-      rx.filter((s) => s.dust.balance(new Date()) > 0n),
-      rx.map((s) => s.dust.balance(new Date())),
+      rx.throttleTime(5_000),
+      rx.filter((s: any) => s.dust.balance(new Date()) > 0n),
+      rx.map((s: any) => s.dust.balance(new Date())),
     ),
   );
-  logger.info(`Dust generation tx submitted: ${txId}; dust balance: ${dustBalance}`);
+  logger.info(`DUST available: ${dustBalance}`);
   return txId;
 };
