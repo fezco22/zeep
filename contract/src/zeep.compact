@@ -1,0 +1,75 @@
+pragma language_version >= 0.19;
+import CompactStandardLibrary;
+
+// ZEEP - private payment rail. Pay a username, receiver stays unlinkable.
+//
+// Public ledger (opaque, no sender<->receiver<->amount link):
+//   usernames    hash(username) -> receiver key   (public directory, by design)
+//   commitments  set of note commitments          (opaque)
+//   nullifiers   set of spent-note markers         (prevents double-claim)
+//   noteCount    number of notes created           (volume only)
+//
+// NOTE: pin stdlib names to the installed compact compiler. If compile errors,
+// swap `persistentHash` <-> `persistentCommit` / `Set.member` <-> `Set.contains`
+// to whatever the pinned std library exports.
+
+export ledger usernames: Map<Bytes<32>, Bytes<32>>;
+export ledger commitments: Set<Bytes<32>>;
+export ledger nullifiers: Set<Bytes<32>>;
+export ledger noteCount: Counter;
+
+struct Note {
+  recipient: Bytes<32>,
+  amount: Uint<64>,
+  salt: Bytes<32>,
+}
+
+struct NullifierInput {
+  sk: Bytes<32>,
+  commitment: Bytes<32>,
+}
+
+// Private inputs - never written to the ledger.
+witness receiverSk(): Bytes<32>;
+witness paymentSalt(): Bytes<32>;
+witness paymentAmount(): Uint<64>;
+
+pure circuit deriveKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Bytes<32>>(sk);
+}
+
+pure circuit noteCommitment(recipient: Bytes<32>, amount: Uint<64>, salt: Bytes<32>): Bytes<32> {
+  return persistentHash<Note>(Note { recipient: recipient, amount: amount, salt: salt });
+}
+
+// Bind a username to the caller's receiver key. Directory entry is public.
+export circuit register(nameHash: Bytes<32>): [] {
+  const key = deriveKey(receiverSk());
+  usernames.insert(disclose(nameHash), disclose(key));
+}
+
+// Pay a username. Amount + payer identity stay private; only the commitment lands.
+export circuit pay(nameHash: Bytes<32>): [] {
+  assert(usernames.member(disclose(nameHash)), "username not registered");
+  const key = usernames.lookup(disclose(nameHash));
+  const amount = paymentAmount();
+  const salt = paymentSalt();
+  const c = noteCommitment(key, amount, salt);
+  commitments.insert(disclose(c));
+  noteCount.increment(1);
+}
+
+// Claim a note. Proves ownership + membership, publishes a nullifier.
+// Second claim of the same note fails on the nullifier check.
+export circuit claim(commitment: Bytes<32>): [] {
+  const sk = receiverSk();
+  const key = deriveKey(sk);
+  const amount = paymentAmount();
+  const salt = paymentSalt();
+  const c = noteCommitment(key, amount, salt);
+  assert(c == disclose(commitment), "commitment does not open to this note");
+  assert(commitments.member(disclose(commitment)), "unknown commitment");
+  const nf = persistentHash<NullifierInput>(NullifierInput { sk: sk, commitment: commitment });
+  assert(!nullifiers.member(disclose(nf)), "note already claimed");
+  nullifiers.insert(disclose(nf));
+}
