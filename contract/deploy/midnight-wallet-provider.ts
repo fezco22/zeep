@@ -22,6 +22,7 @@ import {
   type EnvironmentConfiguration,
   FluentWalletBuilder,
 } from "@midnight-ntwrk/testkit-js";
+import { submitStable } from "./submit.js";
 
 type UnshieldedKeystore = {
   getPublicKey(): unknown;
@@ -73,7 +74,8 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
   }
 
   submitTx(tx: FinalizedTransaction): Promise<string> {
-    return this.wallet.submitTransaction(tx);
+    // Bypass the SDK submission service (premature disconnect bug on Preprod).
+    return submitStable((this.env as unknown as { node: string }).node, tx);
   }
 
   async start(): Promise<void> {
@@ -92,7 +94,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
   ): Promise<MidnightWalletProvider> {
     const dustOptions: DustWalletOptions = {
       ledgerParams: LedgerParameters.initialParameters(),
-      additionalFeeOverhead: 300_000_000_000_000n,
+      additionalFeeOverhead: BigInt(process.env.DUST_FEE_OVERHEAD ?? "1000"),
       feeBlocksMargin: 5,
     };
     const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
