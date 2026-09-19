@@ -41,12 +41,17 @@ async function main(): Promise<void> {
   const walletProvider = await MidnightWalletProvider.build(logger, preprodEnv, seed);
   await walletProvider.start();
 
+  // Faucet requires a Cloudflare Turnstile captcha, so it cannot be requested
+  // programmatically. Fund the address (see `npm run address`) from
+  // https://faucet.preprod.midnight.network/ first, then run this. Set
+  // FUND_FROM_FAUCET=1 only if a captcha-exempt faucet is configured.
+  const fundFromFaucet = process.env.FUND_FROM_FAUCET === "1";
   const unshielded = await waitForUnshieldedFunds(
     logger,
     walletProvider.wallet,
     preprodEnv,
     unshieldedToken(),
-    true, // request from faucet
+    fundFromFaucet,
   );
   const nightBalance = unshielded.balances[unshieldedToken().raw];
   if (nightBalance === undefined || nightBalance === 0n) {
