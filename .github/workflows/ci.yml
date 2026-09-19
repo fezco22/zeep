@@ -23,11 +23,11 @@ jobs:
             https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Update Compact compiler
-        run: compact update
+      - name: Pin Compact compiler (Preprod-compatible)
+        run: compact update 0.31.1
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Compile contract
         run: npm run compile
