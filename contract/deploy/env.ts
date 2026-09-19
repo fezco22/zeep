@@ -10,6 +10,6 @@ export const preprodEnv = {
   indexerWS: "wss://indexer.preprod.midnight.network/api/v4/graphql/ws",
   node: "https://rpc.preprod.midnight.network",
   nodeWS: "wss://rpc.preprod.midnight.network",
-  faucet: "https://midnight-tmnight-preprod.nethermind.dev/",
+  faucet: "https://faucet.preprod.midnight.network/api/drips",
   proofServer: process.env.PROOF_SERVER ?? "http://localhost:6300",
 } as unknown as EnvironmentConfiguration;

@@ -77,12 +77,15 @@ export const waitForUnshieldedFunds = async (
   const initialBalance = initialState.balances[tokenType.raw];
   if (initialBalance === undefined || initialBalance === 0n) {
     logger.info("Wallet initial balance is 0; waiting to receive tokens...");
+    // Gate on the unshielded wallet being synced with a positive balance only.
+    // Shielded/dust sync can lag; dust generation waits on its own synced state.
     return Rx.firstValueFrom(
       wallet.state().pipe(
         Rx.throttleTime(throttleTime),
         Rx.filter(
           (state: FacadeState) =>
-            isFacadeStateSynced(state) && (state.unshielded.balances[tokenType.raw] ?? 0n) > 0n,
+            isProgressStrictlyComplete(state.unshielded.progress) &&
+            (state.unshielded.balances[tokenType.raw] ?? 0n) > 0n,
         ),
         Rx.tap(() => logger.info("Funds received")),
         Rx.map((state: FacadeState) => state.unshielded),
