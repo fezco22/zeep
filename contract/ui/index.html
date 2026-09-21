@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZEEP — Deploy to Midnight Preprod</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #141821;
+        --accent: #7c5cff;
+        --accent-2: #22d3ee;
+        --text: #e6e9ef;
+        --muted: #8b93a7;
+        --ok: #34d399;
+        --err: #f87171;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: radial-gradient(1200px 600px at 70% -10%, #1b1740, var(--bg));
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+        padding: 32px 16px;
+      }
+      .wrap { width: 100%; max-width: 720px; }
+      h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+      .sub { color: var(--muted); margin: 0 0 24px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid #232a38;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      button {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #0b0d12;
+        font-weight: 700;
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      select {
+        background: #0e1219;
+        color: var(--text);
+        border: 1px solid #2a3242;
+        border-radius: 10px;
+        padding: 11px 12px;
+        font-size: 14px;
+      }
+      .kv { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed #232a38; }
+      .kv:last-child { border-bottom: 0; }
+      .kv .k { color: var(--muted); }
+      .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; text-align: right; }
+      #log {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12.5px;
+        white-space: pre-wrap;
+        line-height: 1.5;
+        margin: 0;
+        max-height: 320px;
+        overflow: auto;
+      }
+      .addr {
+        background: #0e1219;
+        border: 1px solid var(--ok);
+        border-radius: 10px;
+        padding: 14px;
+        font-family: ui-monospace, monospace;
+        word-break: break-all;
+        color: var(--ok);
+      }
+      a { color: var(--accent-2); }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>ZEEP</h1>
+      <p class="sub">Deploy the privacy payment contract to Midnight Preprod — zero gas, wallet-sponsored.</p>
+
+      <div class="card">
+        <div class="row">
+          <select id="wallet"><option value="">Detecting wallets…</option></select>
+          <button id="connect" disabled>Connect</button>
+          <button id="deploy" disabled>Deploy ZEEP</button>
+        </div>
+        <div id="status" class="kv" style="margin-top:14px">
+          <span class="k">status</span><span class="v" id="statusVal">idle</span>
+        </div>
+      </div>
+
+      <div id="result" class="card hidden">
+        <div class="kv"><span class="k">contract address</span></div>
+        <div class="addr" id="addr"></div>
+      </div>
+
+      <div class="card">
+        <pre id="log"></pre>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
