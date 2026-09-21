@@ -17,6 +17,16 @@ export default defineConfig({
     global: "globalThis",
   },
   resolve: {
+    // Force a single instance of these packages. compact-js keys the contract
+    // context under a module-local Symbol(); two instances (one via
+    // midnight-js-protocol/compact-js, one direct in midnight-js-contracts) make
+    // that Symbol mismatch, so contract[TypeId] reads undefined -> "reading 'ctor'".
+    dedupe: [
+      "@midnight-ntwrk/compact-js",
+      "@midnight-ntwrk/compact-runtime",
+      "@midnight-ntwrk/onchain-runtime-v3",
+      "@midnight-ntwrk/ledger-v8",
+    ],
     alias: {
       // isomorphic-ws' browser build has no named `WebSocket` export, but the
       // indexer provider imports it by name. Point it at a shim that re-exports
