@@ -22,28 +22,45 @@ export async function submitStable(
   const serialized = (SerializedTransaction as unknown as { from(tx: unknown): Uint8Array }).from(
     finalizedTx,
   );
-  const api = await ApiPromise.create({
-    provider: new WsProvider(nodeWsUrl(nodeUrl)),
-    noInitWarn: true,
-    throwOnConnect: true,
-  });
+  const provider = new WsProvider(nodeWsUrl(nodeUrl));
+  const api = await ApiPromise.create({ provider, noInitWarn: true, throwOnConnect: true });
+  // The relay WS can close ("Normal Closure") before the extrinsic is included,
+  // which kills the status subscription and would otherwise hang forever. Bound
+  // the wait with a timeout and reject on disconnect so the caller can rebuild
+  // and resubmit.
+  const timeoutMs = Number(process.env.SUBMIT_TIMEOUT_MS ?? 90_000);
   try {
     return await new Promise<string>((resolve, reject) => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout>;
+      const finish = (fn: (v: any) => void, v: unknown): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fn(v);
+      };
+      timer = setTimeout(
+        () => finish(reject, new Error(`submit timeout after ${timeoutMs}ms (no ${waitFor})`)),
+        timeoutMs,
+      );
+      provider.on("disconnected", () =>
+        finish(reject, new Error("node WS disconnected before inclusion")),
+      );
       (api.tx as any).midnight
         .sendMnTransaction(u8aToHex(serialized))
         .send((result: any) => {
-          if (result.isError) return reject(new Error("Transaction reported isError"));
-          if (result.dispatchError) return reject(new Error(result.dispatchError.toString()));
-          const done = waitFor === "Finalized" ? result.status?.isFinalized : result.status?.isInBlock;
-          if (done) {
+          if (result.isError) return finish(reject, new Error("Transaction reported isError"));
+          if (result.dispatchError) return finish(reject, new Error(result.dispatchError.toString()));
+          const ok = waitFor === "Finalized" ? result.status?.isFinalized : result.status?.isInBlock;
+          if (ok) {
             const hash =
               result.status?.asInBlock?.toHex?.() ??
               result.txHash?.toHex?.() ??
               String(result.txHash);
-            resolve(hash);
+            finish(resolve, hash);
           }
         })
-        .catch(reject);
+        .catch((e: unknown) => finish(reject, e));
     });
   } finally {
     await api.disconnect();

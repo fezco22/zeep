@@ -5,3 +5,6 @@ managed/
 .DS_Store
 .env
 graphify-out/
+.wallet-snapshot/
+deploy/.wallet-snapshot/
+contract/deploy/.wallet-snapshot/

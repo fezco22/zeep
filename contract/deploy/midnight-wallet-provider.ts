@@ -23,6 +23,7 @@ import {
   FluentWalletBuilder,
 } from "@midnight-ntwrk/testkit-js";
 import { submitStable } from "./submit.js";
+import { buildCustomWallet } from "./custom-wallet.js";
 
 type UnshieldedKeystore = {
   getPublicKey(): unknown;
@@ -97,15 +98,30 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       additionalFeeOverhead: BigInt(process.env.DUST_FEE_OVERHEAD ?? "1000"),
       feeBlocksMargin: 5,
     };
-    const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
-    const buildResult = seed
-      ? await builder.withSeed(seed).buildWithoutStarting()
-      : await builder.withRandomSeed().buildWithoutStarting();
-    const { wallet, seeds, keystore } = buildResult as unknown as {
-      wallet: WalletFacade;
-      seeds: { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
-      keystore: UnshieldedKeystore;
-    };
+    // Path B (default): assemble the WalletFacade by hand so the dust wallet uses
+    // a reconnecting sync service (see custom-wallet.ts). Set USE_DEFAULT_DUST_SYNC=1
+    // to fall back to the stock FluentWalletBuilder for comparison.
+    const useDefault = process.env.USE_DEFAULT_DUST_SYNC === "1";
+    let wallet: WalletFacade;
+    let seeds: { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
+    let keystore: UnshieldedKeystore;
+    if (useDefault) {
+      const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
+      const buildResult = seed
+        ? await builder.withSeed(seed).buildWithoutStarting()
+        : await builder.withRandomSeed().buildWithoutStarting();
+      ({ wallet, seeds, keystore } = buildResult as unknown as {
+        wallet: WalletFacade;
+        seeds: { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
+        keystore: UnshieldedKeystore;
+      });
+    } else {
+      if (!seed) throw new Error("Path B custom wallet requires a seed");
+      const buildResult = await buildCustomWallet(logger, env, seed, dustOptions);
+      wallet = buildResult.wallet as WalletFacade;
+      seeds = buildResult.seeds as { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
+      keystore = buildResult.keystore as UnshieldedKeystore;
+    }
 
     const initialState = await getInitialShieldedState(logger, wallet.shielded);
     logger.info(`Wallet address (shielded): ${initialState.address.coinPublicKeyString()}`);
