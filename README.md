@@ -66,8 +66,32 @@ npm run compile   # compact compile -> managed/zeep
 npm test          # 4 tests: register / pay / claim / no-amount-on-ledger
 ```
 
+## Deployment
+
+ZEEP is live on **Midnight Preprod** (verifiable via the Preprod indexer as a
+`ContractDeploy` action):
+
+- **Contract address:** `b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5`
+- **Deploy tx:** `0x84b7773c152d4ef5cf477b4caf70ddf2823b048a03877a2295660d212790d399`
+- **Network:** preprod · **Deployed:** 2026-09-20 (see [contract/deploy/deployed.json](contract/deploy/deployed.json))
+
+Verify:
+
+```bash
+curl -s -H "Content-Type: application/json" \
+  -d '{"query":"query{contractAction(address:\"b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5\"){__typename address}}"}' \
+  https://indexer.preprod.midnight.network/api/v4/graphql
+```
+
+Deploy is headless via `contract/deploy` (`npm run deploy`): it builds a
+`WalletFacade` with a reconnecting dust sync, waits for the dust wallet to sync to
+the chain tip, then submits the deploy tx low-level (`createUnprovenDeployTx` +
+`submitTxAsync`) to avoid the high-level finalization watch that hangs on Preprod.
+Synced wallet state is snapshotted so redeploys skip the multi-hour genesis replay.
+A browser deploy dApp (any injected Midnight wallet) lives in `contract/ui`.
+
 ## Links
 
 - Product on X: TODO (add the profile URL once created)
-- Preprod contract address: TODO (add after deploy)
+- Preprod contract address: `b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5`
 - Live demo: TODO (add after frontend deploy)
