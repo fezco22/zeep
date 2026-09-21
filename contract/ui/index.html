@@ -1,113 +1,446 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZEEP — Deploy to Midnight Preprod</title>
+    <title>ZEEP — get paid by username, privately</title>
+    <meta
+      name="description"
+      content="ZEEP is a private payment rail on Midnight. Share a username, get paid without exposing your wallet history."
+    />
     <style>
+      /* Direction: PRD 5.1 — restrained nocturnal fintech. Dials ENERGY 2 / RHYTHM 2 / MOTION 1.
+         Palette reasons (R-31): slate ink + off-white are the neutral base; one accent,
+         moonlight-gold, is used ONLY on the primary action and the "claimed" success state
+         (ties to the moon-phase narrative, one accent one job). Mono is used ONLY for
+         technical strings (addresses, commitments, tx hashes) where character
+         disambiguation is functional, never as decoration. */
       :root {
-        --bg: #0b0d12;
-        --panel: #141821;
-        --accent: #7c5cff;
-        --accent-2: #22d3ee;
-        --text: #e6e9ef;
-        --muted: #8b93a7;
-        --ok: #34d399;
-        --err: #f87171;
+        --surface: #f5f3ee;
+        --panel: #ffffff;
+        --line: #e2ddd2;
+        --muted: #5c6270;
+        --text: #1b1f28;
+        --gold: #9a7b2e; /* accent tuned darker than #C7A45A for AA text contrast on light */
+        --gold-solid: #c7a45a; /* the identity gold, used on fills where text is dark ink */
+        --ok: #1f7a54;
+        --err: #b3341f;
+        --radius: 10px;
+        --radius-lg: 16px;
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        --surface: #14171f;
+        --panel: #191d27;
+        --line: #2a303c;
+        --muted: #9aa2b2;
+        --text: #e8eaf0;
+        --gold: #d8b76a;
+        --gold-solid: #c7a45a;
+        --ok: #4fd1a1;
+        --err: #f0836e;
         color-scheme: dark;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        background: radial-gradient(1200px 600px at 70% -10%, #1b1740, var(--bg));
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--surface);
         color: var(--text);
-        display: flex;
-        justify-content: center;
-        padding: 32px 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
-      .wrap { width: 100%; max-width: 720px; }
-      h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
-      .sub { color: var(--muted); margin: 0 0 24px; }
-      .card {
+      .mono {
+        font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+        font-size: 0.85em;
+        word-break: break-all;
+      }
+      a {
+        color: var(--gold);
+      }
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+
+      header.top {
+        border-bottom: 1px solid var(--line);
         background: var(--panel);
-        border: 1px solid #232a38;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 16px;
       }
-      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-      button {
-        background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        color: #0b0d12;
+      .bar {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         font-weight: 700;
-        border: 0;
-        border-radius: 10px;
-        padding: 12px 18px;
-        font-size: 15px;
+        letter-spacing: -0.01em;
+        font-size: 18px;
+      }
+      .brand svg {
+        display: block;
+      }
+      .net {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 3px 9px;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .ghost {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 8px 12px;
         cursor: pointer;
       }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
-      select {
-        background: #0e1219;
+      .ghost:hover {
+        border-color: var(--gold);
+      }
+      .gold {
+        background: var(--gold-solid);
+        color: #141821;
+        border: 0;
+        border-radius: var(--radius);
+        padding: 10px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .gold:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .gold:not(:disabled):hover {
+        filter: brightness(1.06);
+      }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 24px 20px 64px;
+      }
+      .lede {
+        margin: 8px 0 4px;
+        font-size: 27px;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 24px;
+        max-width: 54ch;
+      }
+
+      nav.tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      .tab {
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        padding: 10px 14px;
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .tab[aria-selected="true"] {
         color: var(--text);
-        border: 1px solid #2a3242;
-        border-radius: 10px;
-        padding: 11px 12px;
+        border-bottom-color: var(--gold-solid);
+      }
+      .tab:hover {
+        color: var(--text);
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+      }
+      .panel[hidden] {
+        display: none;
+      }
+      h2.h {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .hint {
+        color: var(--muted);
         font-size: 14px;
+        margin: 0 0 18px;
       }
-      .kv { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed #232a38; }
-      .kv:last-child { border-bottom: 0; }
-      .kv .k { color: var(--muted); }
-      .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; text-align: right; }
-      #log {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12.5px;
-        white-space: pre-wrap;
-        line-height: 1.5;
-        margin: 0;
-        max-height: 320px;
-        overflow: auto;
+      label.field {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 6px;
       }
-      .addr {
-        background: #0e1219;
-        border: 1px solid var(--ok);
-        border-radius: 10px;
-        padding: 14px;
-        font-family: ui-monospace, monospace;
-        word-break: break-all;
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+      input.in,
+      textarea.in {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 11px 12px;
+      }
+      .handle-wrap {
+        display: flex;
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding-left: 12px;
+        flex: 1;
+        min-width: 200px;
+      }
+      .handle-wrap span {
+        color: var(--muted);
+      }
+      .handle-wrap input {
+        border: 0;
+        background: transparent;
+        padding: 11px 10px;
+        flex: 1;
+        outline: none;
+      }
+      .stack > * + * {
+        margin-top: 16px;
+      }
+      .note {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* One deliberate reveal (MOTION 1): the crescent fills to full when a note is claimed.
+         "in shadow -> claimed in light". No looping animation anywhere. */
+      .arc {
+        transition: transform 240ms ease;
+      }
+
+      .status {
+        margin-top: 16px;
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        font-size: 14px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .status.ok {
+        border-color: var(--ok);
         color: var(--ok);
       }
-      a { color: var(--accent-2); }
-      .hidden { display: none; }
+      .status.err {
+        border-color: var(--err);
+        color: var(--err);
+      }
+      .status[hidden] {
+        display: none;
+      }
+      .code-out {
+        margin-top: 14px;
+        background: var(--surface);
+        border: 1px solid var(--ok);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+      }
+      .code-out[hidden] {
+        display: none;
+      }
+      .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--line);
+        font-size: 14px;
+      }
+      .kv:last-child {
+        border-bottom: 0;
+      }
+      .kv .k {
+        color: var(--muted);
+      }
+      .kv .v {
+        text-align: right;
+      }
+      .empty {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 8px 0;
+      }
+      footer {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 0 20px 48px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer .line {
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      pre.log {
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--muted);
+        max-height: 160px;
+        overflow: auto;
+        margin: 16px 0 0;
+      }
+      pre.log:empty {
+        display: none;
+      }
+      @media (max-width: 560px) {
+        .lede {
+          font-size: 23px;
+        }
+        .bar {
+          gap: 10px;
+        }
+        .brand span.full {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h1>ZEEP</h1>
-      <p class="sub">Deploy the privacy payment contract to Midnight Preprod — zero gas, wallet-sponsored.</p>
-
-      <div class="card">
-        <div class="row">
-          <select id="wallet"><option value="">Detecting wallets…</option></select>
-          <button id="connect" disabled>Connect</button>
-          <button id="deploy" disabled>Deploy ZEEP</button>
+    <header class="top">
+      <div class="bar">
+        <div class="brand">
+          <!-- Identity motif: waxing crescent -> full. Geometric, drawn inline (no
+               fabricated logo asset, R-23). The right disc fills on a claim. -->
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+            <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gold-solid)" stroke-width="1.5" />
+            <path id="brandArc" class="arc" d="M11 2 a9 9 0 0 1 0 18 a6 9 0 0 0 0 -18" fill="var(--gold-solid)" />
+          </svg>
+          <span>ZEEP</span><span class="full" style="color: var(--muted); font-weight: 500">&nbsp;· private pay</span>
         </div>
-        <div id="status" class="kv" style="margin-top:14px">
-          <span class="k">status</span><span class="v" id="statusVal">idle</span>
+        <span class="net" id="net">Preprod</span>
+        <div class="spacer"></div>
+        <button class="ghost" id="theme" aria-label="Toggle light and dark theme">Dark</button>
+        <button class="gold" id="connect">Connect wallet</button>
+      </div>
+    </header>
+
+    <main>
+      <h1 class="lede">Get paid by username, not by exposing your wallet.</h1>
+      <p class="sub">
+        Share a handle like <span class="mono">@riri</span>. People pay it. The chain records only an
+        opaque note, never who paid, how much, or which note is yours.
+      </p>
+
+      <nav class="tabs" role="tablist" aria-label="ZEEP actions">
+        <button class="tab" role="tab" id="tab-pay" aria-controls="p-pay" aria-selected="true">Pay</button>
+        <button class="tab" role="tab" id="tab-claim" aria-controls="p-claim" aria-selected="false">Claim</button>
+        <button class="tab" role="tab" id="tab-register" aria-controls="p-register" aria-selected="false">Register</button>
+        <button class="tab" role="tab" id="tab-ledger" aria-controls="p-ledger" aria-selected="false">Ledger</button>
+      </nav>
+
+      <!-- PAY -->
+      <section class="panel" id="p-pay" role="tabpanel" aria-labelledby="tab-pay">
+        <h2 class="h">Pay a handle</h2>
+        <p class="hint">The amount and your identity stay private. You get a claim code to hand the receiver.</p>
+        <div class="stack">
+          <div>
+            <label class="field" for="payUser">Recipient handle</label>
+            <div class="handle-wrap"><span>@</span><input id="payUser" autocomplete="off" spellcheck="false" placeholder="riri" /></div>
+          </div>
+          <div>
+            <label class="field" for="payAmt">Amount (private witness)</label>
+            <input class="in" id="payAmt" inputmode="numeric" placeholder="500" />
+          </div>
+          <button class="gold" id="doPay" disabled>Pay this handle</button>
         </div>
-      </div>
+        <div class="status" id="payStatus" hidden></div>
+        <div class="code-out" id="payCode" hidden>
+          <div class="note" style="margin-bottom: 8px">Claim code (send to the receiver out of band):</div>
+          <div class="kv"><span class="k">code</span><span class="v mono" id="payCodeVal"></span></div>
+          <button class="ghost" id="copyCode" style="margin-top: 10px">Copy claim code</button>
+        </div>
+      </section>
 
-      <div id="result" class="card hidden">
-        <div class="kv"><span class="k">contract address</span></div>
-        <div class="addr" id="addr"></div>
-      </div>
+      <!-- CLAIM -->
+      <section class="panel" id="p-claim" role="tabpanel" aria-labelledby="tab-claim" hidden>
+        <h2 class="h">Claim a payment</h2>
+        <p class="hint">Paste a claim code you received. The contract proves the note is yours and blocks any second claim.</p>
+        <div class="stack">
+          <div>
+            <label class="field" for="claimCode">Claim code</label>
+            <textarea class="in" id="claimCode" rows="3" spellcheck="false" placeholder="paste the code from the payer"></textarea>
+          </div>
+          <button class="gold" id="doClaim" disabled>Claim this payment</button>
+        </div>
+        <div class="status" id="claimStatus" hidden></div>
+      </section>
 
-      <div class="card">
-        <pre id="log"></pre>
+      <!-- REGISTER -->
+      <section class="panel" id="p-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+        <h2 class="h">Register your handle</h2>
+        <p class="hint">Binds <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
+        <div class="stack">
+          <div>
+            <label class="field" for="regUser">Your handle</label>
+            <div class="handle-wrap"><span>@</span><input id="regUser" autocomplete="off" spellcheck="false" placeholder="your-handle" /></div>
+          </div>
+          <button class="gold" id="doRegister" disabled>Register this handle</button>
+        </div>
+        <div class="status" id="regStatus" hidden></div>
+      </section>
+
+      <!-- LEDGER -->
+      <section class="panel" id="p-ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
+        <h2 class="h">On-chain state</h2>
+        <p class="hint">What an observer can see: counts only, never links. Read live from the Preprod indexer.</p>
+        <div id="ledgerBody">
+          <div class="empty" id="ledgerEmpty">Connect a wallet to read the contract state.</div>
+        </div>
+        <button class="ghost" id="refreshLedger" style="margin-top: 14px" disabled>Refresh</button>
+      </section>
+
+      <pre class="log" id="log" aria-live="polite"></pre>
+    </main>
+
+    <footer>
+      <div class="line">
+        Contract (Midnight Preprod):
+        <span class="mono" id="addr">b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5</span>.
+        <a id="verify" href="#" target="_blank" rel="noopener">Verify on the indexer</a>.
+        Not audited, testnet only. Selective disclosure is planned, not yet shipped.
       </div>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    </footer>
+
+    <script type="module" src="/src/app-main.ts"></script>
   </body>
 </html>
