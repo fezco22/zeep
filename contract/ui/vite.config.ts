@@ -9,6 +9,9 @@ import wasm from "vite-plugin-wasm";
 // needed (it also breaks the production build via an swc `missing field type`
 // bug). `global: globalThis` satisfies libraries that expect a Node global.
 export default defineConfig({
+  // Relative base so the build works both at the domain root (local preview) and
+  // under a subpath like GitHub Pages' /zeep/.
+  base: "./",
   plugins: [wasm()],
   define: {
     global: "globalThis",

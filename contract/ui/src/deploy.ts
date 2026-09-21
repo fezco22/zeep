@@ -56,8 +56,13 @@ export async function deployZeep(wallet: Wallet, log: Logger): Promise<string> {
   const config = await api.getConfiguration();
   log(`Wallet services: indexer=${config.indexerUri} prover=${config.proverServerUri}`);
 
-  // ZK assets are served statically from this app at /zk/zeep (see public/zk/zeep).
-  const zkBaseUrl = `${window.location.origin}/zk/zeep`;
+  // ZK assets are served statically from this app under <base>/zk/zeep (see
+  // public/zk/zeep). Resolve against the app's base URL so it works at the domain
+  // root and under a subpath (e.g. GitHub Pages' /zeep/).
+  const zkBaseUrl = new URL(`${import.meta.env.BASE_URL}zk/zeep`, window.location.href).href.replace(
+    /\/$/,
+    "",
+  );
   const zkConfigProvider = new FetchZkConfigProvider<ZeepCircuit>(zkBaseUrl, fetch.bind(window));
 
   // Delegate proving to the wallet, keyed by our served proving material.

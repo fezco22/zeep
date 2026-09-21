@@ -1,0 +1,69 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Compact toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Pin Compact compiler (Preprod-compatible)
+        run: compact update 0.31.1
+
+      - name: Compile contract (regenerate managed/zeep zk assets)
+        working-directory: contract
+        run: |
+          npm install --no-audit --no-fund
+          npm run compile
+
+      - name: Stage zk assets for the dApp
+        working-directory: contract
+        run: |
+          mkdir -p ui/public/zk/zeep
+          cp -r managed/zeep/keys ui/public/zk/zeep/
+          cp -r managed/zeep/zkir ui/public/zk/zeep/
+
+      - name: Build dApp
+        working-directory: contract/ui
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: contract/ui/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
