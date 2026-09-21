@@ -109,6 +109,11 @@ export async function connect(wallet: Wallet, log: Logger): Promise<Session> {
     // secret; must be >= 16 chars per the SDK.
     privateStoragePasswordProvider: () => "zeep-preprod-app-store-2026!",
   });
+  // Private state is stored under `${contractAddress}:${privateStateId}`, so the
+  // provider needs the deployed contract address before any get/set.
+  (privateStateProvider as unknown as { setContractAddress(a: string): void }).setContractAddress(
+    CONTRACT_ADDRESS,
+  );
 
   const coinPublicKey = api.getCoinPublicKey ? await api.getCoinPublicKey() : "";
   const encryptionPublicKey = api.getEncryptionPublicKey ? await api.getEncryptionPublicKey() : "";
