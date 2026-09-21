@@ -89,26 +89,65 @@ function requireSession(statusEl: HTMLElement): Session | undefined {
   return session;
 }
 
-connectBtn.addEventListener("click", async () => {
+// ---- hash router: landing (#/) vs app (#/login) ----
+const landingEls = [...document.querySelectorAll<HTMLElement>(".landing")];
+const appView = $<HTMLElement>("app");
+const launchApp = $<HTMLAnchorElement>("launchApp");
+const loginGate = $<HTMLDivElement>("loginGate");
+const appTabs = $<HTMLElement>("appTabs");
+const panels = ["p-pay", "p-claim", "p-register", "p-ledger"].map((id) => $<HTMLElement>(id));
+
+function route() {
+  const inApp = location.hash.startsWith("#/login") || location.hash.startsWith("#/app");
+  for (const el of landingEls) el.hidden = inApp;
+  appView.hidden = !inApp;
+  launchApp.hidden = inApp;
+  connectBtn.hidden = !inApp;
+  if (inApp) {
+    window.scrollTo(0, 0);
+    if (!session) {
+      loginGate.hidden = false;
+      appTabs.hidden = true;
+      for (const p of panels) p.hidden = true;
+    }
+  }
+}
+window.addEventListener("hashchange", route);
+
+function revealApp() {
+  loginGate.hidden = true;
+  appTabs.hidden = false;
+  for (const b of actionButtons) b.disabled = false;
+  selectTab($<HTMLButtonElement>("tab-register")); // onboarding starts at Register
+}
+
+async function doConnect(trigger: HTMLButtonElement) {
   const wallets: Wallet[] = detectWallets();
   if (wallets.length === 0) {
-    connectBtn.textContent = "No Midnight wallet found";
+    trigger.textContent = "No Midnight wallet found";
     log("No injected Midnight wallet (window.midnight). Install 1AM or Lace for Preprod.");
     return;
   }
-  connectBtn.disabled = true;
-  connectBtn.textContent = "Connecting...";
+  const original = trigger.textContent;
+  trigger.disabled = true;
+  trigger.textContent = "Connecting...";
   try {
     session = await connect(wallets[0], log);
     connectBtn.textContent = `Connected · ${wallets[0].name}`;
-    for (const b of actionButtons) b.disabled = false;
+    revealApp();
     await loadLedger();
   } catch (e) {
-    connectBtn.disabled = false;
-    connectBtn.textContent = "Connect wallet";
+    trigger.disabled = false;
+    trigger.textContent = original;
     log(`Connect failed: ${errMsg(e)}`);
   }
-});
+}
+
+connectBtn.addEventListener("click", () => doConnect(connectBtn));
+$<HTMLButtonElement>("gateConnect").addEventListener("click", (ev) =>
+  doConnect(ev.currentTarget as HTMLButtonElement),
+);
+route();
 
 // ---- register ----
 const regStatus = $<HTMLDivElement>("regStatus");
@@ -237,14 +276,11 @@ $<HTMLAnchorElement>("verify").addEventListener("click", async (e) => {
   }
 });
 
-// ---- hero handle claim: jump to the Register tab, prefill, and focus ----
+// ---- hero handle claim: go to the app (sign-in), carry the handle for Register ----
 $<HTMLButtonElement>("heroClaim").addEventListener("click", () => {
   const h = $<HTMLInputElement>("heroHandle").value.trim();
-  selectTab($<HTMLButtonElement>("tab-register"));
-  const reg = $<HTMLInputElement>("regUser");
-  if (h) reg.value = h;
-  document.getElementById("app")?.scrollIntoView({ behavior: "smooth" });
-  reg.focus();
+  if (h) $<HTMLInputElement>("regUser").value = h;
+  location.hash = "#/login";
 });
 
 log("ZEEP ready. Connect a Midnight wallet (Preprod) to register, pay, or claim.");

@@ -182,18 +182,18 @@
         <span class="net">Preprod</span>
         <nav class="navlinks" aria-label="Sections">
           <a href="#how">How it works</a>
-          <a href="#app">App</a>
           <a href="#faq">FAQ</a>
         </nav>
         <div class="spacer"></div>
         <button class="ghost" id="theme" aria-label="Toggle light and dark theme">Dark</button>
-        <button class="gold" id="connect">Connect wallet</button>
+        <a class="gold" id="launchApp" href="#/login" role="button" style="text-decoration: none">Launch app</a>
+        <button class="gold" id="connect" hidden>Connect wallet</button>
       </div>
     </header>
 
     <main>
       <!-- HERO -->
-      <div class="wrap">
+      <div class="wrap landing">
         <div class="hero">
           <div>
             <h1 class="title">Get paid by username.<span class="p">Stay private.</span></h1>
@@ -234,7 +234,7 @@
       </div>
 
       <!-- HOW IT WORKS (real three-circuit flow) -->
-      <section class="band" id="how">
+      <section class="band landing" id="how">
         <div class="wrap">
           <p class="kicker">How it works</p>
           <h2 class="sec">Three circuits, one private rail</h2>
@@ -260,7 +260,7 @@
       </section>
 
       <!-- PERSONAS (from the PRD, real use, varied cards) -->
-      <section class="band">
+      <section class="band landing">
         <div class="wrap">
           <p class="kicker">Who it is for</p>
           <h2 class="sec">Payments that do not doxx you</h2>
@@ -285,10 +285,16 @@
       <section class="band" id="app">
         <div class="wrap">
           <p class="kicker">Live on Preprod</p>
-          <h2 class="sec">Try it</h2>
-          <p class="lead">Connect a Midnight wallet (1AM or Lace on Preprod), then register a handle, pay it, and claim.</p>
+          <h2 class="sec">Sign in</h2>
+          <p class="lead">Connect a Midnight wallet (1AM or Lace on Preprod), then register a handle, pay it, and claim. Your keys never leave the wallet.</p>
 
-          <nav class="tabs" role="tablist" aria-label="ZEEP actions">
+          <div class="panel" id="loginGate" style="text-align: center; padding: 28px">
+            <h2 class="h">Connect your wallet to continue</h2>
+            <p class="hint" style="margin-bottom: 16px">No account, no password. ZEEP uses your Midnight wallet on Preprod.</p>
+            <button class="gold" id="gateConnect">Connect wallet</button>
+          </div>
+
+          <nav class="tabs" role="tablist" aria-label="ZEEP actions" id="appTabs" hidden>
             <button class="tab" role="tab" id="tab-pay" aria-controls="p-pay" aria-selected="true">Pay</button>
             <button class="tab" role="tab" id="tab-claim" aria-controls="p-claim" aria-selected="false">Claim</button>
             <button class="tab" role="tab" id="tab-register" aria-controls="p-register" aria-selected="false">Register</button>
@@ -357,7 +363,7 @@
       </section>
 
       <!-- FAQ (real, product-specific) -->
-      <section class="band" id="faq">
+      <section class="band landing" id="faq">
         <div class="wrap">
           <p class="kicker">FAQ</p>
           <h2 class="sec">What the chain can and cannot see</h2>
