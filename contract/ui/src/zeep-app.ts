@@ -103,6 +103,11 @@ export async function connect(wallet: Wallet, log: Logger): Promise<Session> {
   const publicDataProvider = indexerPublicDataProvider(config.indexerUri, config.indexerWsUri);
   const privateStateProvider = levelPrivateStateProvider<typeof PRIVATE_STATE_ID, ZeepPrivateState>({
     privateStateStoreName: "zeep-private-state",
+    signingKeyStoreName: "zeep-signing-keys",
+    accountId: "zeep-preprod",
+    // Encrypts the browser-local private-state store (IndexedDB). Not a network
+    // secret; must be >= 16 chars per the SDK.
+    privateStoragePasswordProvider: () => "zeep-preprod-app-store-2026!",
   });
 
   const coinPublicKey = api.getCoinPublicKey ? await api.getCoinPublicKey() : "";

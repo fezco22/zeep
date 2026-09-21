@@ -10,19 +10,20 @@
     />
     <style>
       /* Direction: PRD 5.1 — restrained nocturnal fintech. Dials ENERGY 2 / RHYTHM 2 / MOTION 1.
-         Palette reasons (R-31): slate ink + off-white are the neutral base; one accent,
-         moonlight-gold, is used ONLY on the primary action and the "claimed" success state
-         (ties to the moon-phase narrative, one accent one job). Mono is used ONLY for
-         technical strings (addresses, commitments, tx hashes) where character
-         disambiguation is functional, never as decoration. */
+         Palette (R-31): slate ink + off-white neutral base; ONE accent, moonlight-gold, used
+         only on the primary action, the active nav mark, and the "claimed" success state
+         (moon-phase narrative, one accent one job). Mono ONLY for technical strings
+         (addresses, commitments, tx). No fabricated stats or testimonials (R-17/R-18):
+         the only numbers shown are read live from the chain. */
       :root {
         --surface: #f5f3ee;
         --panel: #ffffff;
+        --raise: #faf8f3;
         --line: #e2ddd2;
         --muted: #5c6270;
         --text: #1b1f28;
-        --gold: #9a7b2e; /* accent tuned darker than #C7A45A for AA text contrast on light */
-        --gold-solid: #c7a45a; /* the identity gold, used on fills where text is dark ink */
+        --gold: #9a7b2e;
+        --gold-solid: #c7a45a;
         --ok: #1f7a54;
         --err: #b3341f;
         --radius: 10px;
@@ -32,6 +33,7 @@
       :root[data-theme="dark"] {
         --surface: #14171f;
         --panel: #191d27;
+        --raise: #1f2431;
         --line: #2a303c;
         --muted: #9aa2b2;
         --text: #e8eaf0;
@@ -41,9 +43,7 @@
         --err: #f0836e;
         color-scheme: dark;
       }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
@@ -53,285 +53,117 @@
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
       }
-      .mono {
-        font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
-        font-size: 0.85em;
-        word-break: break-all;
-      }
-      a {
-        color: var(--gold);
-      }
-      button,
-      input,
-      textarea,
-      select {
-        font: inherit;
-        color: inherit;
-      }
-      :focus-visible {
-        outline: 2px solid var(--gold);
-        outline-offset: 2px;
-        border-radius: 4px;
-      }
+      .mono { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 0.85em; word-break: break-all; }
+      a { color: var(--gold); }
+      button, input, textarea, select { font: inherit; color: inherit; }
+      :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+      .wrap { max-width: 940px; margin: 0 auto; padding: 0 20px; }
 
-      header.top {
-        border-bottom: 1px solid var(--line);
-        background: var(--panel);
-      }
-      .bar {
-        max-width: 880px;
-        margin: 0 auto;
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        font-size: 18px;
-      }
-      .brand svg {
-        display: block;
-      }
-      .net {
-        font-size: 12px;
-        color: var(--muted);
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 3px 9px;
-      }
-      .spacer {
-        flex: 1;
-      }
-      .ghost {
-        background: transparent;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 8px 12px;
-        cursor: pointer;
-      }
-      .ghost:hover {
-        border-color: var(--gold);
-      }
-      .gold {
-        background: var(--gold-solid);
-        color: #141821;
-        border: 0;
-        border-radius: var(--radius);
-        padding: 10px 16px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .gold:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .gold:not(:disabled):hover {
-        filter: brightness(1.06);
-      }
+      header.top { border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 10; }
+      .bar { max-width: 940px; margin: 0 auto; padding: 13px 20px; display: flex; align-items: center; gap: 14px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; font-size: 18px; }
+      .brand svg { display: block; }
+      .net { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+      .navlinks { display: flex; gap: 4px; }
+      .navlinks a { color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: var(--radius); font-size: 14px; font-weight: 600; }
+      .navlinks a:hover { color: var(--text); }
+      .spacer { flex: 1; }
+      .ghost { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; cursor: pointer; }
+      .ghost:hover { border-color: var(--gold); }
+      .gold { background: var(--gold-solid); color: #141821; border: 0; border-radius: var(--radius); padding: 10px 16px; font-weight: 700; cursor: pointer; }
+      .gold:disabled { opacity: 0.5; cursor: not-allowed; }
+      .gold:not(:disabled):hover { filter: brightness(1.06); }
 
-      main {
-        max-width: 880px;
-        margin: 0 auto;
-        padding: 24px 20px 64px;
-      }
-      .lede {
-        margin: 8px 0 4px;
-        font-size: 27px;
-        letter-spacing: -0.02em;
-        line-height: 1.15;
-      }
-      .sub {
-        color: var(--muted);
-        margin: 0 0 24px;
-        max-width: 54ch;
-      }
+      /* HERO: asymmetric two-column (text + public/private ledger card). RHYTHM 2:
+         later sections use different compositions (steps row, persona grid, FAQ list). */
+      .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; padding: 64px 0 40px; }
+      h1.title { font-size: 52px; line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 18px; }
+      h1.title .p { color: var(--gold); display: block; }
+      .hero p.sub { color: var(--muted); font-size: 18px; margin: 0 0 26px; max-width: 46ch; }
+      .claim { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+      .claim .handle-wrap { flex: 1; min-width: 220px; }
+      .handle-wrap { display: flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding-left: 12px; }
+      .handle-wrap span { color: var(--muted); }
+      .handle-wrap input { border: 0; background: transparent; padding: 12px 10px; flex: 1; outline: none; width: 100%; }
+      .microcopy { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
 
-      nav.tabs {
-        display: flex;
-        gap: 4px;
-        border-bottom: 1px solid var(--line);
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-      }
-      .tab {
-        background: transparent;
-        border: 0;
-        border-bottom: 2px solid transparent;
-        padding: 10px 14px;
-        cursor: pointer;
-        color: var(--muted);
-        font-weight: 600;
-      }
-      .tab[aria-selected="true"] {
-        color: var(--text);
-        border-bottom-color: var(--gold-solid);
-      }
-      .tab:hover {
-        color: var(--text);
-      }
+      /* Ledger card: an honest schematic of what is public vs private, not a fake
+         product screenshot (R-38, C-5). Directly serves the privacy pitch. */
+      .ledgercard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
+      .ledgercard h3 { margin: 0 0 14px; font-size: 14px; color: var(--muted); font-weight: 600; }
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .col h4 { margin: 0 0 8px; font-size: 12px; text-transform: none; color: var(--muted); }
+      .col ul { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+      .col li { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+      .col li:last-child { border-bottom: 0; }
+      .col.pub { }
+      .col.priv { border-left: 2px solid var(--gold-solid); padding-left: 12px; }
 
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--radius-lg);
-        padding: 22px;
-      }
-      .panel[hidden] {
-        display: none;
-      }
-      h2.h {
-        margin: 0 0 4px;
-        font-size: 18px;
-      }
-      .hint {
-        color: var(--muted);
-        font-size: 14px;
-        margin: 0 0 18px;
-      }
-      label.field {
-        display: block;
-        font-size: 13px;
-        color: var(--muted);
-        margin: 0 0 6px;
-      }
-      .row {
-        display: flex;
-        gap: 10px;
-        align-items: stretch;
-        flex-wrap: wrap;
-      }
-      input.in,
-      textarea.in {
-        width: 100%;
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 11px 12px;
-      }
-      .handle-wrap {
-        display: flex;
-        align-items: center;
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding-left: 12px;
-        flex: 1;
-        min-width: 200px;
-      }
-      .handle-wrap span {
-        color: var(--muted);
-      }
-      .handle-wrap input {
-        border: 0;
-        background: transparent;
-        padding: 11px 10px;
-        flex: 1;
-        outline: none;
-      }
-      .stack > * + * {
-        margin-top: 16px;
-      }
-      .note {
-        font-size: 13px;
-        color: var(--muted);
-      }
+      section.band { padding: 48px 0; border-top: 1px solid var(--line); }
+      .kicker { color: var(--gold); font-size: 13px; font-weight: 700; letter-spacing: 0.02em; margin: 0 0 6px; }
+      h2.sec { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+      p.lead { color: var(--muted); margin: 0 0 28px; max-width: 56ch; }
 
-      /* One deliberate reveal (MOTION 1): the crescent fills to full when a note is claimed.
-         "in shadow -> claimed in light". No looping animation anywhere. */
-      .arc {
-        transition: transform 240ms ease;
-      }
+      /* How it works: the real three-circuit flow, not a forced 3-step template.
+         Varied widths (the claim step is emphasized as the payoff). */
+      .steps { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 16px; }
+      .step { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
+      .step .n { font-family: ui-monospace, monospace; color: var(--gold); font-size: 13px; }
+      .step h3 { margin: 8px 0 6px; font-size: 17px; }
+      .step p { margin: 0; color: var(--muted); font-size: 14px; }
+      .step.pay { border-color: var(--gold-solid); }
 
-      .status {
-        margin-top: 16px;
-        border-radius: var(--radius);
-        padding: 12px 14px;
-        font-size: 14px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-      }
-      .status.ok {
-        border-color: var(--ok);
-        color: var(--ok);
-      }
-      .status.err {
-        border-color: var(--err);
-        color: var(--err);
-      }
-      .status[hidden] {
-        display: none;
-      }
-      .code-out {
-        margin-top: 14px;
-        background: var(--surface);
-        border: 1px solid var(--ok);
-        border-radius: var(--radius);
-        padding: 12px 14px;
-      }
-      .code-out[hidden] {
-        display: none;
-      }
-      .kv {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 5px 0;
-        border-bottom: 1px dashed var(--line);
-        font-size: 14px;
-      }
-      .kv:last-child {
-        border-bottom: 0;
-      }
-      .kv .k {
-        color: var(--muted);
-      }
-      .kv .v {
-        text-align: right;
-      }
-      .empty {
-        color: var(--muted);
-        font-size: 14px;
-        padding: 8px 0;
-      }
-      footer {
-        max-width: 880px;
-        margin: 0 auto;
-        padding: 0 20px 48px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      footer .line {
-        border-top: 1px solid var(--line);
-        padding-top: 16px;
-      }
-      pre.log {
-        font-family: ui-monospace, monospace;
-        font-size: 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: var(--muted);
-        max-height: 160px;
-        overflow: auto;
-        margin: 16px 0 0;
-      }
-      pre.log:empty {
-        display: none;
-      }
-      @media (max-width: 560px) {
-        .lede {
-          font-size: 23px;
-        }
-        .bar {
-          gap: 10px;
-        }
-        .brand span.full {
-          display: none;
-        }
+      .personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .persona { background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
+      .persona h3 { margin: 0 0 6px; font-size: 16px; }
+      .persona p { margin: 0; color: var(--muted); font-size: 14px; }
+
+      /* App */
+      #app { scroll-margin-top: 72px; }
+      nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 22px 0 20px; flex-wrap: wrap; }
+      .tab { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; cursor: pointer; color: var(--muted); font-weight: 600; }
+      .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--gold-solid); }
+      .tab:hover { color: var(--text); }
+      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; }
+      .panel[hidden] { display: none; }
+      h2.h { margin: 0 0 4px; font-size: 18px; }
+      .hint { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+      label.field { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+      input.in, textarea.in { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; }
+      .stack > * + * { margin-top: 16px; }
+      .note { font-size: 13px; color: var(--muted); }
+      .arc { transition: transform 240ms ease; }
+      .status { margin-top: 16px; border-radius: var(--radius); padding: 12px 14px; font-size: 14px; border: 1px solid var(--line); background: var(--surface); }
+      .status.ok { border-color: var(--ok); color: var(--ok); }
+      .status.err { border-color: var(--err); color: var(--err); }
+      .status[hidden] { display: none; }
+      .code-out { margin-top: 14px; background: var(--surface); border: 1px solid var(--ok); border-radius: var(--radius); padding: 12px 14px; }
+      .code-out[hidden] { display: none; }
+      .kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+      .kv:last-child { border-bottom: 0; }
+      .kv .k { color: var(--muted); }
+      .kv .v { text-align: right; }
+      .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+      pre.log { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; color: var(--muted); max-height: 160px; overflow: auto; margin: 16px 0 0; }
+      pre.log:empty { display: none; }
+
+      /* FAQ: native details/summary, keyboard-operable, real product questions. */
+      details.faq { border-bottom: 1px solid var(--line); padding: 4px 0; }
+      details.faq summary { cursor: pointer; padding: 14px 2px; font-weight: 600; list-style: none; }
+      details.faq summary::-webkit-details-marker { display: none; }
+      details.faq summary::after { content: "+"; float: right; color: var(--muted); }
+      details.faq[open] summary::after { content: "–"; }
+      details.faq p { margin: 0 2px 14px; color: var(--muted); font-size: 14px; }
+
+      footer { color: var(--muted); font-size: 13px; padding: 40px 0 56px; border-top: 1px solid var(--line); }
+
+      @media (max-width: 760px) {
+        .hero { grid-template-columns: 1fr; gap: 28px; padding: 40px 0 24px; }
+        h1.title { font-size: 38px; }
+        .steps { grid-template-columns: 1fr; }
+        .personas { grid-template-columns: 1fr; }
+        .navlinks { display: none; }
+        .brand span.full { display: none; }
       }
     </style>
   </head>
@@ -339,15 +171,20 @@
     <header class="top">
       <div class="bar">
         <div class="brand">
-          <!-- Identity motif: waxing crescent -> full. Geometric, drawn inline (no
-               fabricated logo asset, R-23). The right disc fills on a claim. -->
+          <!-- Identity motif: waxing crescent -> full (PRD). Inline geometry, no fabricated
+               logo asset (R-23). The right disc fills to full on a successful claim. -->
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
             <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gold-solid)" stroke-width="1.5" />
             <path id="brandArc" class="arc" d="M11 2 a9 9 0 0 1 0 18 a6 9 0 0 0 0 -18" fill="var(--gold-solid)" />
           </svg>
-          <span>ZEEP</span><span class="full" style="color: var(--muted); font-weight: 500">&nbsp;· private pay</span>
+          <span>ZEEP</span>
         </div>
-        <span class="net" id="net">Preprod</span>
+        <span class="net">Preprod</span>
+        <nav class="navlinks" aria-label="Sections">
+          <a href="#how">How it works</a>
+          <a href="#app">App</a>
+          <a href="#faq">FAQ</a>
+        </nav>
         <div class="spacer"></div>
         <button class="ghost" id="theme" aria-label="Toggle light and dark theme">Dark</button>
         <button class="gold" id="connect">Connect wallet</button>
@@ -355,88 +192,204 @@
     </header>
 
     <main>
-      <h1 class="lede">Get paid by username, not by exposing your wallet.</h1>
-      <p class="sub">
-        Share a handle like <span class="mono">@riri</span>. People pay it. The chain records only an
-        opaque note, never who paid, how much, or which note is yours.
-      </p>
-
-      <nav class="tabs" role="tablist" aria-label="ZEEP actions">
-        <button class="tab" role="tab" id="tab-pay" aria-controls="p-pay" aria-selected="true">Pay</button>
-        <button class="tab" role="tab" id="tab-claim" aria-controls="p-claim" aria-selected="false">Claim</button>
-        <button class="tab" role="tab" id="tab-register" aria-controls="p-register" aria-selected="false">Register</button>
-        <button class="tab" role="tab" id="tab-ledger" aria-controls="p-ledger" aria-selected="false">Ledger</button>
-      </nav>
-
-      <!-- PAY -->
-      <section class="panel" id="p-pay" role="tabpanel" aria-labelledby="tab-pay">
-        <h2 class="h">Pay a handle</h2>
-        <p class="hint">The amount and your identity stay private. You get a claim code to hand the receiver.</p>
-        <div class="stack">
+      <!-- HERO -->
+      <div class="wrap">
+        <div class="hero">
           <div>
-            <label class="field" for="payUser">Recipient handle</label>
-            <div class="handle-wrap"><span>@</span><input id="payUser" autocomplete="off" spellcheck="false" placeholder="riri" /></div>
+            <h1 class="title">Get paid by username.<span class="p">Stay private.</span></h1>
+            <p class="sub">
+              Share a handle like <span class="mono">@riri</span>. Clients pay it. The chain records only an
+              opaque note, never who paid, how much, or which note is yours.
+            </p>
+            <div class="claim">
+              <div class="handle-wrap"><span>@</span><input id="heroHandle" autocomplete="off" spellcheck="false" placeholder="your-handle" aria-label="Choose your handle" /></div>
+              <button class="gold" id="heroClaim">Claim this handle</button>
+            </div>
+            <p class="microcopy">Runs on Midnight Preprod. Connect a wallet to register, pay, or claim.</p>
           </div>
-          <div>
-            <label class="field" for="payAmt">Amount (private witness)</label>
-            <input class="in" id="payAmt" inputmode="numeric" placeholder="500" />
-          </div>
-          <button class="gold" id="doPay" disabled>Pay this handle</button>
+          <aside class="ledgercard" aria-label="What is public versus private">
+            <h3>One payment, split by what the chain can see</h3>
+            <div class="split">
+              <div class="col pub">
+                <h4>Public on-chain</h4>
+                <ul>
+                  <li>hash(username) &rarr; key</li>
+                  <li>opaque note commitment</li>
+                  <li>spent-note nullifier</li>
+                  <li>note count (volume only)</li>
+                </ul>
+              </div>
+              <div class="col priv">
+                <h4>Private witnesses</h4>
+                <ul>
+                  <li>who paid</li>
+                  <li>the amount</li>
+                  <li>which note is whose</li>
+                  <li>which note a claim spent</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
         </div>
-        <div class="status" id="payStatus" hidden></div>
-        <div class="code-out" id="payCode" hidden>
-          <div class="note" style="margin-bottom: 8px">Claim code (send to the receiver out of band):</div>
-          <div class="kv"><span class="k">code</span><span class="v mono" id="payCodeVal"></span></div>
-          <button class="ghost" id="copyCode" style="margin-top: 10px">Copy claim code</button>
+      </div>
+
+      <!-- HOW IT WORKS (real three-circuit flow) -->
+      <section class="band" id="how">
+        <div class="wrap">
+          <p class="kicker">How it works</p>
+          <h2 class="sec">Three circuits, one private rail</h2>
+          <p class="lead">Each step is a zero-knowledge circuit call on Midnight. Nothing here links a sender to a receiver to an amount.</p>
+          <div class="steps">
+            <div class="step">
+              <div class="n">register</div>
+              <h3>Bind your handle</h3>
+              <p>Map <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
+            </div>
+            <div class="step pay">
+              <div class="n">pay</div>
+              <h3>Pay a handle</h3>
+              <p>Amount and payer stay private witnesses. Only an opaque commitment lands on-chain.</p>
+            </div>
+            <div class="step">
+              <div class="n">claim</div>
+              <h3>Claim with proof</h3>
+              <p>Prove the note is yours and publish a nullifier. A second claim of the same note is rejected.</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- CLAIM -->
-      <section class="panel" id="p-claim" role="tabpanel" aria-labelledby="tab-claim" hidden>
-        <h2 class="h">Claim a payment</h2>
-        <p class="hint">Paste a claim code you received. The contract proves the note is yours and blocks any second claim.</p>
-        <div class="stack">
-          <div>
-            <label class="field" for="claimCode">Claim code</label>
-            <textarea class="in" id="claimCode" rows="3" spellcheck="false" placeholder="paste the code from the payer"></textarea>
+      <!-- PERSONAS (from the PRD, real use, varied cards) -->
+      <section class="band">
+        <div class="wrap">
+          <p class="kicker">Who it is for</p>
+          <h2 class="sec">Payments that do not doxx you</h2>
+          <div class="personas">
+            <div class="persona">
+              <h3>Freelancers</h3>
+              <p>Put <span class="mono">@you</span> on an invoice. Clients pay it without seeing your balance or your other clients.</p>
+            </div>
+            <div class="persona">
+              <h3>Clients paying invoices</h3>
+              <p>Pay a handle from your wallet without the whole chain logging that you paid that person that amount.</p>
+            </div>
+            <div class="persona">
+              <h3>Anyone proving income</h3>
+              <p>Selective disclosure of an aggregate is on the roadmap: prove a total without revealing each payment.</p>
+            </div>
           </div>
-          <button class="gold" id="doClaim" disabled>Claim this payment</button>
         </div>
-        <div class="status" id="claimStatus" hidden></div>
       </section>
 
-      <!-- REGISTER -->
-      <section class="panel" id="p-register" role="tabpanel" aria-labelledby="tab-register" hidden>
-        <h2 class="h">Register your handle</h2>
-        <p class="hint">Binds <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
-        <div class="stack">
-          <div>
-            <label class="field" for="regUser">Your handle</label>
-            <div class="handle-wrap"><span>@</span><input id="regUser" autocomplete="off" spellcheck="false" placeholder="your-handle" /></div>
-          </div>
-          <button class="gold" id="doRegister" disabled>Register this handle</button>
+      <!-- APP -->
+      <section class="band" id="app">
+        <div class="wrap">
+          <p class="kicker">Live on Preprod</p>
+          <h2 class="sec">Try it</h2>
+          <p class="lead">Connect a Midnight wallet (1AM or Lace on Preprod), then register a handle, pay it, and claim.</p>
+
+          <nav class="tabs" role="tablist" aria-label="ZEEP actions">
+            <button class="tab" role="tab" id="tab-pay" aria-controls="p-pay" aria-selected="true">Pay</button>
+            <button class="tab" role="tab" id="tab-claim" aria-controls="p-claim" aria-selected="false">Claim</button>
+            <button class="tab" role="tab" id="tab-register" aria-controls="p-register" aria-selected="false">Register</button>
+            <button class="tab" role="tab" id="tab-ledger" aria-controls="p-ledger" aria-selected="false">Ledger</button>
+          </nav>
+
+          <section class="panel" id="p-pay" role="tabpanel" aria-labelledby="tab-pay">
+            <h2 class="h">Pay a handle</h2>
+            <p class="hint">The amount and your identity stay private. You get a claim code to hand the receiver.</p>
+            <div class="stack">
+              <div>
+                <label class="field" for="payUser">Recipient handle</label>
+                <div class="handle-wrap"><span>@</span><input id="payUser" autocomplete="off" spellcheck="false" placeholder="riri" /></div>
+              </div>
+              <div>
+                <label class="field" for="payAmt">Amount (private witness)</label>
+                <input class="in" id="payAmt" inputmode="numeric" placeholder="500" />
+              </div>
+              <button class="gold" id="doPay" disabled>Pay this handle</button>
+            </div>
+            <div class="status" id="payStatus" hidden></div>
+            <div class="code-out" id="payCode" hidden>
+              <div class="note" style="margin-bottom: 8px">Claim code (send to the receiver out of band):</div>
+              <div class="kv"><span class="k">code</span><span class="v mono" id="payCodeVal"></span></div>
+              <button class="ghost" id="copyCode" style="margin-top: 10px">Copy claim code</button>
+            </div>
+          </section>
+
+          <section class="panel" id="p-claim" role="tabpanel" aria-labelledby="tab-claim" hidden>
+            <h2 class="h">Claim a payment</h2>
+            <p class="hint">Paste a claim code you received. The contract proves the note is yours and blocks any second claim.</p>
+            <div class="stack">
+              <div>
+                <label class="field" for="claimCode">Claim code</label>
+                <textarea class="in" id="claimCode" rows="3" spellcheck="false" placeholder="paste the code from the payer"></textarea>
+              </div>
+              <button class="gold" id="doClaim" disabled>Claim this payment</button>
+            </div>
+            <div class="status" id="claimStatus" hidden></div>
+          </section>
+
+          <section class="panel" id="p-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+            <h2 class="h">Register your handle</h2>
+            <p class="hint">Binds <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
+            <div class="stack">
+              <div>
+                <label class="field" for="regUser">Your handle</label>
+                <div class="handle-wrap"><span>@</span><input id="regUser" autocomplete="off" spellcheck="false" placeholder="your-handle" /></div>
+              </div>
+              <button class="gold" id="doRegister" disabled>Register this handle</button>
+            </div>
+            <div class="status" id="regStatus" hidden></div>
+          </section>
+
+          <section class="panel" id="p-ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
+            <h2 class="h">On-chain state</h2>
+            <p class="hint">What an observer can see: counts only, never links. Read live from the Preprod indexer.</p>
+            <div id="ledgerBody">
+              <div class="empty" id="ledgerEmpty">Connect a wallet to read the contract state.</div>
+            </div>
+            <button class="ghost" id="refreshLedger" style="margin-top: 14px" disabled>Refresh</button>
+          </section>
+
+          <pre class="log" id="log" aria-live="polite"></pre>
         </div>
-        <div class="status" id="regStatus" hidden></div>
       </section>
 
-      <!-- LEDGER -->
-      <section class="panel" id="p-ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
-        <h2 class="h">On-chain state</h2>
-        <p class="hint">What an observer can see: counts only, never links. Read live from the Preprod indexer.</p>
-        <div id="ledgerBody">
-          <div class="empty" id="ledgerEmpty">Connect a wallet to read the contract state.</div>
+      <!-- FAQ (real, product-specific) -->
+      <section class="band" id="faq">
+        <div class="wrap">
+          <p class="kicker">FAQ</p>
+          <h2 class="sec">What the chain can and cannot see</h2>
+          <details class="faq">
+            <summary>What can an observer learn?</summary>
+            <p>That a payment happened, the total note count, and the public username directory. Never who paid, how much, which receiver a note belongs to, or which note a claim spent.</p>
+          </details>
+          <details class="faq">
+            <summary>Why is the username directory public?</summary>
+            <p>Discoverability is the product: you share a handle so people can pay it. Privacy lives in the note, commitment, and nullifier layer, not in the directory.</p>
+          </details>
+          <details class="faq">
+            <summary>How is a double claim blocked without a public balance table?</summary>
+            <p>Claiming a note publishes a nullifier derived from your secret and the note. A second claim of the same note recomputes the same nullifier, which is already present, so the contract rejects it.</p>
+          </details>
+          <details class="faq">
+            <summary>How does the receiver learn a note is theirs?</summary>
+            <p>In this MVP the payer hands over a claim code out of band (the commitment plus amount and salt). On-chain encrypted payloads are a planned upgrade.</p>
+          </details>
+          <details class="faq">
+            <summary>Is this audited?</summary>
+            <p>No. ZEEP runs on Midnight Preprod (testnet) and is not audited. Do not use it with real funds.</p>
+          </details>
         </div>
-        <button class="ghost" id="refreshLedger" style="margin-top: 14px" disabled>Refresh</button>
       </section>
-
-      <pre class="log" id="log" aria-live="polite"></pre>
     </main>
 
     <footer>
-      <div class="line">
+      <div class="wrap">
         Contract (Midnight Preprod):
         <span class="mono" id="addr">b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5</span>.
-        <a id="verify" href="#" target="_blank" rel="noopener">Verify on the indexer</a>.
+        <a id="verify" href="#" role="button">Verify on the indexer</a>.
         Not audited, testnet only. Selective disclosure is planned, not yet shipped.
       </div>
     </footer>

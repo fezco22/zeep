@@ -237,4 +237,14 @@ $<HTMLAnchorElement>("verify").addEventListener("click", async (e) => {
   }
 });
 
+// ---- hero handle claim: jump to the Register tab, prefill, and focus ----
+$<HTMLButtonElement>("heroClaim").addEventListener("click", () => {
+  const h = $<HTMLInputElement>("heroHandle").value.trim();
+  selectTab($<HTMLButtonElement>("tab-register"));
+  const reg = $<HTMLInputElement>("regUser");
+  if (h) reg.value = h;
+  document.getElementById("app")?.scrollIntoView({ behavior: "smooth" });
+  reg.focus();
+});
+
 log("ZEEP ready. Connect a Midnight wallet (Preprod) to register, pay, or claim.");
