@@ -12,5 +12,11 @@ graphify-out/
 .wallet-snapshot/
 deploy/.wallet-snapshot/
 contract/deploy/.wallet-snapshot/
+
+# Private planning and program notes; keep these files local.
+/PRD_ZEEP.md
+/New_Moon_to_Full_Hackathon_Details.md
+/LEVEL4_AUDIT.md
+/docs/LEVEL5_SUBMISSION.md
 .vercel
 .env*

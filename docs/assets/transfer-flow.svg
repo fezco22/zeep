@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1040 548" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="transfer-flow-title transfer-flow-desc">
+          <title id="transfer-flow-title">ZEEP payment flow</title>
+          <desc id="transfer-flow-desc">A sequence diagram showing a payer resolve a handle in ZEEP, confirm the address and amount in 1AM, approve a transfer, and receive a transaction confirmation from Midnight Preprod.</desc>
+          <defs>
+            <marker id="transfer-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#5c6270" />
+            </marker>
+            <marker id="transfer-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#3e5f95" />
+            </marker>
+            <marker id="transfer-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#9a7b2e" />
+            </marker>
+            <marker id="transfer-flow-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polyline points="0 0, 8 3, 0 6" fill="none" stroke="#3e5f95" stroke-width="1.2" />
+            </marker>
+          <style>@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap');</style></defs>
+          <rect width="1040" height="548" fill="#f5f3ee" />
+
+          <!-- Lifelines -->
+          <line x1="100" y1="104" x2="100" y2="464" stroke="#1b1f28" stroke-opacity=".20" stroke-width="1" stroke-dasharray="3,3" />
+          <line x1="308" y1="104" x2="308" y2="464" stroke="#1b1f28" stroke-opacity=".20" stroke-width="1" stroke-dasharray="3,3" />
+          <line x1="516" y1="104" x2="516" y2="464" stroke="#1b1f28" stroke-opacity=".20" stroke-width="1" stroke-dasharray="3,3" />
+          <line x1="724" y1="104" x2="724" y2="464" stroke="#1b1f28" stroke-opacity=".20" stroke-width="1" stroke-dasharray="3,3" />
+          <line x1="932" y1="104" x2="932" y2="464" stroke="#1b1f28" stroke-opacity=".20" stroke-width="1" stroke-dasharray="3,3" />
+
+          <!-- Activation bars -->
+          <rect x="304" y="148" width="8" height="212" fill="#1b1f28" fill-opacity=".05" stroke="#5c6270" stroke-width=".8" />
+          <rect x="512" y="192" width="8" height="44" fill="#1b1f28" fill-opacity=".05" stroke="#5c6270" stroke-width=".8" />
+          <rect x="720" y="280" width="8" height="132" fill="#f3ead2" stroke="#9a7b2e" stroke-width="1" />
+          <rect x="928" y="412" width="8" height="44" fill="#1b1f28" fill-opacity=".05" stroke="#5c6270" stroke-width=".8" />
+
+          <!-- Messages: time flows down -->
+          <line x1="100" y1="148" x2="308" y2="148" stroke="#5c6270" stroke-width="1.2" marker-end="url(#transfer-flow-arrow)" />
+          <line x1="308" y1="192" x2="516" y2="192" stroke="#3e5f95" stroke-width="1.2" marker-end="url(#transfer-flow-arrow-link)" />
+          <line x1="516" y1="236" x2="308" y2="236" stroke="#5c6270" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow)" />
+          <line x1="308" y1="280" x2="724" y2="280" stroke="#3e5f95" stroke-width="1.2" marker-end="url(#transfer-flow-arrow-link)" />
+          <line x1="724" y1="324" x2="100" y2="324" stroke="#5c6270" stroke-width="1.2" marker-end="url(#transfer-flow-arrow)" />
+          <line x1="100" y1="368" x2="724" y2="368" stroke="#5c6270" stroke-width="1.2" marker-end="url(#transfer-flow-arrow)" />
+          <line x1="724" y1="412" x2="932" y2="412" stroke="#3e5f95" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow-open)" />
+          <line x1="932" y1="456" x2="724" y2="456" stroke="#9a7b2e" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow-accent)" />
+
+          <!-- Message labels; opaque masks keep strokes clear of text -->
+          <rect x="144" y="128" width="120" height="12" rx="2" fill="#f5f3ee" />
+          <text x="204" y="138" fill="#5c6270" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">HANDLE + VALUE</text>
+          <rect x="360" y="172" width="104" height="12" rx="2" fill="#f5f3ee" />
+          <text x="412" y="182" fill="#3e5f95" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">LOOKUP HANDLE</text>
+          <rect x="372" y="216" width="80" height="12" rx="2" fill="#f5f3ee" />
+          <text x="412" y="226" fill="#5c6270" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">ADDRESS</text>
+          <rect x="464" y="260" width="104" height="12" rx="2" fill="#f5f3ee" />
+          <text x="516" y="270" fill="#3e5f95" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">PREPARE TX</text>
+          <rect x="344" y="304" width="136" height="12" rx="2" fill="#f5f3ee" />
+          <text x="412" y="314" fill="#5c6270" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">VERIFY DETAILS</text>
+          <rect x="364" y="348" width="96" height="12" rx="2" fill="#f5f3ee" />
+          <text x="412" y="358" fill="#5c6270" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">APPROVE</text>
+          <rect x="780" y="392" width="96" height="12" rx="2" fill="#f5f3ee" />
+          <text x="828" y="402" fill="#3e5f95" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">SUBMIT TX</text>
+          <rect x="780" y="436" width="96" height="12" rx="2" fill="#f5f3ee" />
+          <text x="828" y="446" fill="#9a7b2e" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing=".06em">CONFIRMED</text>
+
+          <!-- Actors -->
+          <rect x="28" y="52" width="144" height="52" rx="6" fill="#f5f3ee" />
+          <rect x="28" y="52" width="144" height="52" rx="6" fill="#5c6270" fill-opacity=".08" stroke="#858a93" stroke-width="1" />
+          <text x="100" y="77" fill="#1b1f28" font-size="12" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">Payer</text>
+          <text x="100" y="92" fill="#5c6270" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">person</text>
+
+          <rect x="236" y="52" width="144" height="52" rx="6" fill="#f5f3ee" />
+          <rect x="236" y="52" width="144" height="52" rx="6" fill="#ffffff" stroke="#1b1f28" stroke-width="1" />
+          <text x="308" y="77" fill="#1b1f28" font-size="12" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">ZEEP app</text>
+          <text x="308" y="92" fill="#5c6270" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">web client</text>
+
+          <rect x="444" y="52" width="144" height="52" rx="6" fill="#f5f3ee" />
+          <rect x="444" y="52" width="144" height="52" rx="6" fill="#1b1f28" fill-opacity=".04" stroke="#5c6270" stroke-width="1" />
+          <text x="516" y="77" fill="#1b1f28" font-size="12" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">V3 directory</text>
+          <text x="516" y="92" fill="#5c6270" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">public contract</text>
+
+          <rect x="652" y="52" width="144" height="52" rx="6" fill="#f5f3ee" />
+          <rect x="652" y="52" width="144" height="52" rx="6" fill="#f3ead2" stroke="#9a7b2e" stroke-width="1" />
+          <text x="724" y="77" fill="#1b1f28" font-size="12" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">1AM wallet</text>
+          <text x="724" y="92" fill="#5c6270" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">payer approval</text>
+
+          <rect x="860" y="52" width="144" height="52" rx="6" fill="#f5f3ee" />
+          <rect x="860" y="52" width="144" height="52" rx="6" fill="#1b1f28" fill-opacity=".03" stroke="#1b1f28" stroke-opacity=".3" stroke-width="1" />
+          <text x="932" y="77" fill="#1b1f28" font-size="12" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">Midnight</text>
+          <text x="932" y="92" fill="#5c6270" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Preprod ledger</text>
+
+          <!-- Legend -->
+          <line x1="28" y1="496" x2="1012" y2="496" stroke="#1b1f28" stroke-opacity=".12" stroke-width=".8" />
+          <text x="28" y="518" fill="#5c6270" font-size="8" font-family="'Geist Mono', monospace" letter-spacing=".16em">LEGEND</text>
+          <line x1="112" y1="514" x2="144" y2="514" stroke="#5c6270" stroke-width="1.2" marker-end="url(#transfer-flow-arrow)" />
+          <text x="156" y="518" fill="#5c6270" font-size="9" font-family="Geist, sans-serif">user action</text>
+          <line x1="292" y1="514" x2="324" y2="514" stroke="#3e5f95" stroke-width="1.2" marker-end="url(#transfer-flow-arrow-link)" />
+          <text x="336" y="518" fill="#5c6270" font-size="9" font-family="Geist, sans-serif">request</text>
+          <line x1="472" y1="514" x2="504" y2="514" stroke="#5c6270" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow)" />
+          <text x="516" y="518" fill="#5c6270" font-size="9" font-family="Geist, sans-serif">response</text>
+          <line x1="652" y1="514" x2="684" y2="514" stroke="#3e5f95" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow-open)" />
+          <text x="696" y="518" fill="#5c6270" font-size="9" font-family="Geist, sans-serif">submit</text>
+          <line x1="832" y1="514" x2="864" y2="514" stroke="#9a7b2e" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#transfer-flow-arrow-accent)" />
+          <text x="876" y="518" fill="#5c6270" font-size="9" font-family="Geist, sans-serif">confirmed</text>
+        </svg>
