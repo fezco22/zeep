@@ -29,12 +29,12 @@ jobs:
       - name: Compile archived v2 proving assets for the app build
         run: npm run compile:v2
 
-      - name: Test
-        run: npm test
-
       - name: Install app dependencies
         working-directory: contract/ui
         run: npm ci --no-audit --no-fund
+
+      - name: Test
+        run: npm test
 
       - name: Typecheck and build app
         working-directory: contract/ui
