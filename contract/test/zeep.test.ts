@@ -1,18 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  createConstructorContext,
-  createCircuitContext,
-  sampleContractAddress,
-} from "@midnight-ntwrk/compact-runtime";
+import { createConstructorContext, createCircuitContext, sampleContractAddress, persistentHash, CompactTypeBytes } from "@midnight-ntwrk/compact-runtime";
 import { Contract, ledger, type Ledger } from "../managed/zeep/contract/index.js";
 import { witnesses, type ZeepPrivateState } from "../src/witnesses.js";
 
 const ZERO_CPK = "0".repeat(64);
 const b32 = (fill: number) => new Uint8Array(32).fill(fill);
 
-// Minimal in-process simulator for the ZEEP circuits. Threads contract state,
-// private state and zswap state across calls; rebuilds a fresh circuit context
-// per call with the correct circuitId.
 class Sim {
   private constructor(
     private contract: Contract<ZeepPrivateState>,
@@ -25,78 +18,71 @@ class Sim {
   static async create(initialPS: ZeepPrivateState): Promise<Sim> {
     const contract = new Contract<ZeepPrivateState>(witnesses);
     const c = await contract.initialState(createConstructorContext(initialPS, ZERO_CPK));
-    return new Sim(
-      contract,
-      sampleContractAddress(),
-      c.currentPrivateState,
-      c.currentContractState.data, // ChargedState
-      c.currentZswapLocalState,
-    );
+    return new Sim(contract, sampleContractAddress(), c.currentPrivateState, c.currentContractState.data, c.currentZswapLocalState);
   }
 
-  private async call(id: "register" | "pay" | "claim", arg: Uint8Array) {
-    // compact-runtime 0.16: createCircuitContext(address, zswap, contractState, privateState)
+  private async call(args: Uint8Array[]) {
     const ctx = createCircuitContext(this.address, this.zswap, this.state, this.ps);
-    const res = await this.contract.circuits[id](ctx as any, arg);
+    const res = await this.contract.circuits.register(ctx as any, ...args);
     this.state = res.context.currentQueryContext.state;
     this.ps = res.context.currentPrivateState as ZeepPrivateState;
     this.zswap = res.context.currentZswapLocalState;
     return res;
   }
 
-  register(nameHash: Uint8Array) { return this.call("register", nameHash); }
-  pay(nameHash: Uint8Array) { return this.call("pay", nameHash); }
-  claim(commitment: Uint8Array) { return this.call("claim", commitment); }
+  register(nameHash: Uint8Array, nameBytes: Uint8Array, address: Uint8Array) {
+    return this.call([nameHash, nameBytes, address]);
+  }
   ledger(): Ledger { return ledger(this.state); }
-  firstCommitment(): Uint8Array { return [...this.ledger().commitments][0]; }
 }
 
-const NAME = b32(7); // hash(username) stand-in
+const NAME_BYTES = new Uint8Array(32);
+NAME_BYTES.set(new TextEncoder().encode("zeep"));
+const OTHER_BYTES = new Uint8Array(32);
+OTHER_BYTES.set(new TextEncoder().encode("dori"));
+const hashName = (bytes: Uint8Array) => persistentHash(new CompactTypeBytes(32), bytes) as Uint8Array;
+const NAME = hashName(NAME_BYTES);
+const PS: ZeepPrivateState = {};
 
-const PS: ZeepPrivateState = {
-  receiverSk: b32(1),
-  paymentSalt: b32(2),
-  paymentAmount: 500n,
-};
-
-describe("ZEEP contract", () => {
+describe("ZEEP contract registry", () => {
   let sim: Sim;
   beforeEach(async () => { sim = await Sim.create(PS); });
 
-  it("register binds a username to the receiver key", async () => {
-    await sim.register(NAME);
+  it("registers a handle with owner and unshielded recipient address", async () => {
+    await sim.register(NAME, NAME_BYTES, b32(2));
     const l = sim.ledger();
     expect(l.usernames.member(NAME)).toBe(true);
-    expect(l.usernames.size()).toBe(1n);
-    expect(l.usernames.lookup(NAME).length).toBe(32);
+    expect(l.walletHandles.size()).toBe(1n);
+    expect(l.handleNames.lookup(NAME)).toEqual(NAME_BYTES);
+    expect(l.recipientAddresses.lookup(NAME)).toEqual(b32(2));
   });
 
-  it("pay inserts exactly one commitment and increments noteCount", async () => {
-    await sim.register(NAME);
-    await sim.pay(NAME);
-    const l = sim.ledger();
-    expect(l.commitments.size()).toBe(1n);
-    expect(l.noteCount).toBe(1n);
+  it("rejects a second handle for the same unshielded address", async () => {
+    await sim.register(NAME, NAME_BYTES, b32(2));
+    await expect(sim.register(hashName(OTHER_BYTES), OTHER_BYTES, b32(2))).rejects.toThrow("address already has a handle");
   });
 
-  it("claim succeeds once; a second claim of the same note fails on the nullifier", async () => {
-    await sim.register(NAME);
-    await sim.pay(NAME);
-    const commitment = sim.firstCommitment();
-    await sim.claim(commitment);
-    expect(sim.ledger().nullifiers.size()).toBe(1n);
-    await expect(sim.claim(commitment)).rejects.toThrow();
+  it("rejects a handle hash that does not match its display name", async () => {
+    await expect(sim.register(hashName(OTHER_BYTES), NAME_BYTES, b32(2))).rejects.toThrow("handle hash does not match name");
   });
 
-  it("pay writes no amount to any public ledger field", async () => {
-    await sim.register(NAME);
-    await sim.pay(NAME);
-    const l = sim.ledger();
-    // Ledger exposes only the opaque sets + count; the amount never appears.
-    expect(Object.keys(l as object)).toEqual(
-      expect.arrayContaining(["usernames", "commitments", "nullifiers", "noteCount"]),
-    );
-    expect(Object.keys(l as object)).not.toContain("amount");
-    expect(l.commitments.size()).toBe(1n);
+  it("rejects an empty recipient address", async () => {
+    await expect(sim.register(NAME, NAME_BYTES, b32(0))).rejects.toThrow("invalid recipient address");
+  });
+
+  it("documents the unresolved forged-address attack that blocks deployment", async () => {
+    // The circuit accepts an address supplied by any caller. This is an
+    // exploit demonstration, not a security guarantee. Keep the deployment
+    // gate until an in-circuit wallet ownership check makes this call fail.
+    const victimAddress = b32(9);
+    await sim.register(NAME, NAME_BYTES, victimAddress);
+    expect(sim.ledger().walletHandles.lookup(victimAddress)).toEqual(NAME);
+    await expect(sim.register(hashName(OTHER_BYTES), OTHER_BYTES, victimAddress))
+      .rejects.toThrow("address already has a handle");
+  });
+
+  it("enforces handle uniqueness", async () => {
+    await sim.register(NAME, NAME_BYTES, b32(2));
+    await expect(sim.register(NAME, NAME_BYTES, b32(4))).rejects.toThrow();
   });
 });

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZEEP contract deploy</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #121722; color: #f6f2e9; }
+      body { max-width: 760px; margin: 0 auto; padding: 48px 24px; }
+      h1 { margin: 0 0 8px; }
+      p { color: #b9bfcc; }
+      .row { display: flex; gap: 12px; align-items: center; margin: 24px 0; }
+      select, button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid #4d5668; }
+      button { background: #c7a45a; color: #121722; border: 0; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: wait; }
+      #statusVal { color: #c7a45a; }
+      pre { min-height: 180px; padding: 16px; border: 1px solid #30394a; border-radius: 8px; background: #0c1018; white-space: pre-wrap; overflow: auto; }
+      #result { padding: 16px; border: 1px solid #55785e; border-radius: 8px; }
+      .hidden { display: none; }
+      .mono { font-family: ui-monospace, monospace; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <h1>ZEEP contract deploy</h1>
+    <p>Deploy ZEEP v3 on Preprod: handles resolve to unshielded tNIGHT addresses. This demo contract limits one handle per supplied address, but cannot prove that the registrant controls that address. Verify the recipient address before paying a handle.</p>
+    <div class="row">
+      <label for="wallet">Wallet</label>
+      <select id="wallet"></select>
+      <button id="connect" type="button">Connect wallet</button>
+      <button id="deploy" type="button" disabled>Deploy ZEEP</button>
+    </div>
+    <p>Status: <strong id="statusVal">detecting wallet…</strong></p>
+    <pre id="log" aria-live="polite"></pre>
+    <div id="result" class="hidden">
+      <strong>Deployed contract address</strong>
+      <div id="addr" class="mono"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

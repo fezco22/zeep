@@ -1,75 +1,30 @@
 pragma language_version >= 0.19;
 import CompactStandardLibrary;
 
-// ZEEP - private payment rail. Pay a username, receiver stays unlinkable.
+// ZEEP v3 — a public handle directory plus direct unshielded transfers.
 //
-// Public ledger (opaque, no sender<->receiver<->amount link):
-//   usernames    hash(username) -> receiver key   (public directory, by design)
-//   commitments  set of note commitments          (opaque)
-//   nullifiers   set of spent-note markers         (prevents double-claim)
-//   noteCount    number of notes created           (volume only)
-//
-// NOTE: pin stdlib names to the installed compact compiler. If compile errors,
-// swap `persistentHash` <-> `persistentCommit` / `Set.member` <-> `Set.contains`
-// to whatever the pinned std library exports.
+// The directory stores one handle per unshielded recipient address. The UI
+// resolves a handle to that address, then the wallet sends tNIGHT directly.
+// The address is supplied by the caller: this contract cannot authenticate its
+// ownership. Do not treat this map as proof that the registrant controls it.
 
 export ledger usernames: Map<Bytes<32>, Bytes<32>>;
-export ledger commitments: Set<Bytes<32>>;
-export ledger nullifiers: Set<Bytes<32>>;
-export ledger noteCount: Counter;
+export ledger walletHandles: Map<Bytes<32>, Bytes<32>>;
+export ledger handleNames: Map<Bytes<32>, Bytes<32>>;
+export ledger recipientAddresses: Map<Bytes<32>, Bytes<32>>;
 
-struct Note {
-  recipient: Bytes<32>,
-  amount: Uint<64>,
-  salt: Bytes<32>,
-}
-
-struct NullifierInput {
-  sk: Bytes<32>,
-  commitment: Bytes<32>,
-}
-
-// Private inputs - never written to the ledger.
-witness receiverSk(): Bytes<32>;
-witness paymentSalt(): Bytes<32>;
-witness paymentAmount(): Uint<64>;
-
-pure circuit deriveKey(sk: Bytes<32>): Bytes<32> {
-  return persistentHash<Bytes<32>>(sk);
-}
-
-pure circuit noteCommitment(recipient: Bytes<32>, amount: Uint<64>, salt: Bytes<32>): Bytes<32> {
-  return persistentHash<Note>(Note { recipient: recipient, amount: amount, salt: salt });
-}
-
-// Bind a username to the caller's receiver key. Directory entry is public.
-export circuit register(nameHash: Bytes<32>): [] {
-  const key = deriveKey(receiverSk());
-  usernames.insert(disclose(nameHash), disclose(key));
-}
-
-// Pay a username. Amount + payer identity stay private; only the commitment lands.
-export circuit pay(nameHash: Bytes<32>): [] {
-  assert(usernames.member(disclose(nameHash)), "username not registered");
-  const key = usernames.lookup(disclose(nameHash));
-  const amount = paymentAmount();
-  const salt = paymentSalt();
-  const c = noteCommitment(key, amount, salt);
-  commitments.insert(disclose(c));
-  noteCount.increment(1);
-}
-
-// Claim a note. Proves ownership + membership, publishes a nullifier.
-// Second claim of the same note fails on the nullifier check.
-export circuit claim(commitment: Bytes<32>): [] {
-  const sk = receiverSk();
-  const key = deriveKey(sk);
-  const amount = paymentAmount();
-  const salt = paymentSalt();
-  const c = noteCommitment(key, amount, salt);
-  assert(c == disclose(commitment), "commitment does not open to this note");
-  assert(commitments.member(disclose(commitment)), "unknown commitment");
-  const nf = persistentHash<NullifierInput>(NullifierInput { sk: sk, commitment: commitment });
-  assert(!nullifiers.member(disclose(nf)), "note already claimed");
-  nullifiers.insert(disclose(nf));
+// A recipient address can appear once and a handle can be used once.
+export circuit register(
+  nameHash: Bytes<32>,
+  nameBytes: Bytes<32>,
+  unshieldedAddress: Bytes<32>,
+): [] {
+  assert(nameHash == persistentHash<Bytes<32>>(nameBytes), "handle hash does not match name");
+  assert(unshieldedAddress != default<Bytes<32>>, "invalid recipient address");
+  assert(!usernames.member(disclose(nameHash)), "handle already registered");
+  assert(!walletHandles.member(disclose(unshieldedAddress)), "address already has a handle");
+  usernames.insert(disclose(nameHash), disclose(unshieldedAddress));
+  walletHandles.insert(disclose(unshieldedAddress), disclose(nameHash));
+  handleNames.insert(disclose(nameHash), disclose(nameBytes));
+  recipientAddresses.insert(disclose(nameHash), disclose(unshieldedAddress));
 }

@@ -6,17 +6,17 @@
 // Flow: detect window.midnight[*] -> connect('preprod') -> build midnight-js
 // providers backed by the connected wallet -> deployContract(...) -> address.
 import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
-import { deployContract } from "@midnight-ntwrk/midnight-js-contracts";
-import { createProofProvider } from "@midnight-ntwrk/midnight-js-types";
+import { createUnprovenDeployTx, submitTxAsync } from "@midnight-ntwrk/midnight-js-contracts";
 import { FetchZkConfigProvider } from "@midnight-ntwrk/midnight-js-fetch-zk-config-provider";
 import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
 import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
+import { Transaction } from "@midnight-ntwrk/ledger-v8";
 import { CompiledZeepContract } from "../../deploy/compiled.js";
 import type { ZeepPrivateState } from "../../src/witnesses.js";
 
 const NETWORK_ID = "preprod";
-const PRIVATE_STATE_ID = "zeepPrivateState";
-const CIRCUITS = ["register", "pay", "claim"] as const;
+const PRIVATE_STATE_ID = "zeepPrivateStateV3";
+const CIRCUITS = ["register"] as const;
 type ZeepCircuit = (typeof CIRCUITS)[number];
 
 export type Wallet = { id: string; name: string; icon?: string; api: DAppConnectorWalletAPI };
@@ -30,25 +30,17 @@ export function detectWallets(): Wallet[] {
     .map(([id, api]) => ({ id, name: api.name ?? id, icon: api.icon, api }));
 }
 
-function randomBytes(n: number): Uint8Array {
-  const b = new Uint8Array(n);
-  crypto.getRandomValues(b);
-  return b;
-}
-
-/** Normalize a wallet's submit result to a transaction id string. */
-function txHashOf(result: { txHash: string } | string): string {
-  return typeof result === "string" ? result : result.txHash;
-}
+const toHex = (bytes: Uint8Array) => [...bytes].map((x) => x.toString(16).padStart(2, "0")).join("");
+const fromHex = (hex: string) => new Uint8Array((hex.match(/.{1,2}/g) ?? []).map((x) => parseInt(x, 16)));
 
 /**
  * Deploy ZEEP through the given injected wallet. Returns the on-chain contract
  * address. `log` receives human-readable progress lines.
  */
-export async function deployZeep(wallet: Wallet, log: Logger): Promise<string> {
+export async function deployZeep(wallet: Wallet, log: Logger, connectedApi?: DAppConnectorConnectedAPI): Promise<string> {
   setNetworkId(NETWORK_ID);
-  log(`Connecting to ${wallet.name} on ${NETWORK_ID}...`);
-  const api = await wallet.api.connect(NETWORK_ID);
+  if (!connectedApi) log(`Connecting to ${wallet.name} on ${NETWORK_ID}...`);
+  const api = connectedApi ?? await wallet.api.connect(NETWORK_ID);
 
   const status = await api.getConnectionStatus();
   log(`Connected. status.networkId=${String(status.networkId)}`);
@@ -56,48 +48,62 @@ export async function deployZeep(wallet: Wallet, log: Logger): Promise<string> {
   const config = await api.getConfiguration();
   log(`Wallet services: indexer=${config.indexerUri} prover=${config.proverServerUri}`);
 
-  // ZK assets are served statically from this app under <base>/zk/zeep (see
-  // public/zk/zeep). Resolve against the app's base URL so it works at the domain
+  // V3 ZK assets are served statically under <base>/zk/zeep-v3. Resolve
+  // against the app's base URL so it works at the domain
   // root and under a subpath (e.g. GitHub Pages' /zeep/).
-  const zkBaseUrl = new URL(`${import.meta.env.BASE_URL}zk/zeep`, window.location.href).href.replace(
+  const zkBaseUrl = new URL(`${import.meta.env.BASE_URL}zk/zeep-v3`, window.location.href).href.replace(
     /\/$/,
     "",
   );
-  const zkConfigProvider = new FetchZkConfigProvider<ZeepCircuit>(zkBaseUrl, fetch.bind(window));
+  const fetchZkArtifact = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const url = new URL(raw, window.location.href);
+    url.searchParams.set("v", "register-v3-6-inputs");
+    return window.fetch(url, init);
+  };
+  const zkConfigProvider = new FetchZkConfigProvider<ZeepCircuit>(zkBaseUrl, fetchZkArtifact);
 
   // Delegate proving to the wallet, keyed by our served proving material.
-  const provingProvider = api.getProvingProvider(
+  const provingProvider = await api.getProvingProvider(
     (zkConfigProvider as unknown as { asKeyMaterialProvider(): unknown }).asKeyMaterialProvider(),
   );
-  const proofProvider = createProofProvider(provingProvider as never);
+  const proofProvider = {
+    async proveTx(unprovenTx: { prove(provider: unknown, costModel: unknown): Promise<unknown> }) {
+      const { CostModel } = await import("@midnight-ntwrk/ledger-v8");
+      return unprovenTx.prove(provingProvider, CostModel.initialCostModel());
+    },
+  };
 
   const publicDataProvider = indexerPublicDataProvider(config.indexerUri, config.indexerWsUri);
 
   const privateStateProvider = levelPrivateStateProvider<typeof PRIVATE_STATE_ID, ZeepPrivateState>({
-    privateStateStoreName: "zeep-private-state",
+    privateStateStoreName: "zeep-private-state-v3",
+    signingKeyStoreName: "zeep-deploy-signing-keys-v3",
+    accountId: "zeep-deploy-preprod-v3",
+    privateStoragePasswordProvider: () => "zeep-deploy-browser-store-2026!",
   });
 
   // The wallet holds the keys, balances the tx (dust in-wallet) and submits it.
   // WalletProvider.getCoinPublicKey/getEncryptionPublicKey are synchronous, so we
   // resolve them once up front and hand back the cached values.
-  const coinPublicKey = api.getCoinPublicKey ? await api.getCoinPublicKey() : "";
-  const encryptionPublicKey = api.getEncryptionPublicKey ? await api.getEncryptionPublicKey() : "";
+  const { shieldedCoinPublicKey, shieldedEncryptionPublicKey } = await api.getShieldedAddresses();
 
   const walletProvider = {
-    getCoinPublicKey: () => coinPublicKey as never,
-    getEncryptionPublicKey: () => encryptionPublicKey as never,
-    balanceTx: async (tx: unknown): Promise<never> => {
+    getCoinPublicKey: () => shieldedCoinPublicKey as never,
+    getEncryptionPublicKey: () => shieldedEncryptionPublicKey as never,
+    balanceTx: async (tx: { serialize(): Uint8Array }): Promise<never> => {
       log("Balancing transaction in wallet (dust sponsored)...");
-      const balanced = await api.balanceUnsealedTransaction(tx);
-      return balanced.tx as never;
+      const balanced = await api.balanceUnsealedTransaction(toHex(tx.serialize()));
+      if (!balanced?.tx) throw new Error("1AM wallet returned an empty balanced transaction.");
+      return Transaction.deserialize("signature", "proof", "binding", fromHex(balanced.tx)) as never;
     },
   };
 
   const midnightProvider = {
-    submitTx: async (tx: unknown): Promise<never> => {
+    submitTx: async (tx: { serialize(): Uint8Array; identifiers(): string[] }): Promise<never> => {
       log("Submitting transaction via wallet...");
-      const res = await api.submitTransaction(tx);
-      const hash = txHashOf(res);
+      await api.submitTransaction(toHex(tx.serialize()));
+      const hash = tx.identifiers()[0];
       log(`Submitted: ${hash}`);
       return hash as never;
     },
@@ -112,21 +118,20 @@ export async function deployZeep(wallet: Wallet, log: Logger): Promise<string> {
     midnightProvider,
   };
 
-  const initialPrivateState: ZeepPrivateState = {
-    receiverSk: randomBytes(32),
-    paymentSalt: randomBytes(32),
-    paymentAmount: 0n,
-  };
+  const initialPrivateState: ZeepPrivateState = {};
 
   log("Deploying ZEEP contract (proving + balancing may take a minute)...");
-  const deployed = await deployContract(providers as never, {
+  const deployTxData = await createUnprovenDeployTx(providers as never, {
     compiledContract: CompiledZeepContract,
     privateStateId: PRIVATE_STATE_ID,
     initialPrivateState,
   } as never);
 
-  const address = (deployed as { deployTxData: { public: { contractAddress: string } } }).deployTxData
-    .public.contractAddress;
+  const address = (deployTxData as { public: { contractAddress: string } }).public.contractAddress;
+  log("Proving + submitting deploy transaction...");
+  await submitTxAsync(providers as never, {
+    unprovenTx: (deployTxData as { private: { unprovenTx: unknown } }).private.unprovenTx,
+  } as never);
   log(`ZEEP deployed at: ${address}`);
   return address;
 }

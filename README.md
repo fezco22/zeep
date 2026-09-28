@@ -1,97 +1,42 @@
 # ZEEP
 
-[![ci](https://github.com/fezco22/zeep/actions/workflows/ci.yml/badge.svg)](https://github.com/fezco22/zeep/actions/workflows/ci.yml)
+[![CI](https://github.com/fezco22/zeep/actions/workflows/ci.yml/badge.svg)](https://github.com/fezco22/zeep/actions/workflows/ci.yml)
 
-Private payment rail on Midnight. Get paid by username, not by exposing your wallet.
+ZEEP runs a handle-to-unshielded-address directory on Midnight Preprod. The active app uses the [deployed v3 directory](contract/deploy/deployed.json). A payer enters `@handle`; the app resolves its receiving address on-chain and asks 1AM to send native tNIGHT there. Native tNIGHT payments are public. The recipient does not claim the payment through ZEEP.
 
-Pay a `@username`; the receiver collects funds through unlinkable, zero-knowledge
-payments. Built on Midnight with Compact. See [PRD_ZEEP.md](PRD_ZEEP.md) for the
-full design.
+## Current state
 
-## Idea (Level 1 seed)
-
-Sharing a crypto address doxxes your whole financial history. ZEEP maps a public
-`username -> receiver key` directory, records each payment as an opaque note
-commitment (amount and sender stay private witnesses), and lets the receiver
-claim via a nullifier that blocks double-claims. Selective disclosure lets a
-receiver prove an aggregate (e.g. proof-of-income) without exposing any single
-payment.
-
-## Privacy model
-
-- **Public:** that a payment happened, the note count, the username directory.
-- **Private:** who paid, how much, which receiver a note belongs to, which note a
-  claim spent. Sender, amount, and sender-receiver linkage are circuit witnesses.
-
-## Layout
-
-```
-contract/          Compact contract + witnesses + tests
-  src/zeep.compact register / pay / claim circuits
-  src/witnesses.ts private-state witness impls
-  test/            vitest suite (>=3 for Level 3)
-.github/workflows/ CI: compile + test
-PRD_ZEEP.md        full product spec
-```
+- The v3 directory is live at `5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538`. Its deploy transaction confirmed in block `2750168`, and a read-only check matched its register verifier to local proving assets. The current directory has two registered handles. Handles from the prior [v2 directory](contract/v2/deployed.json) must be registered again in v3; v2 is no longer used by the app.
+- Registration stores one handle per supplied unshielded address. The app checks that the connected 1AM wallet signed for that address.
+- **The v3 contract cannot authenticate wallet ownership on-chain.** A direct contract caller can claim someone else's address. The user accepted this limitation for the Preprod demo; verify a handle's receiving address with its owner before paying. The one-wallet-one-handle rule holds in the app flow but is not a security guarantee of this deployed contract. See [registration design](docs/REGISTRATION_AUTH.md).
+- The old payment implementation produced a confirmed self-transfer instead of paying `@dori`. The app no longer uses that route. V3 resolves handles to unshielded addresses and requests an unshielded wallet output. A two-wallet send of 100 tNIGHT from Zeep to Dori was confirmed on Preprod in [transaction `2054f9…08223`](https://explorer.1am.xyz/tx/2054f9abb2cd7e122e3816a63491b9b6b6d9e6dc2dd9649a3af20b517fa08223?network=preprod). For standard connectors, the app inspects the prepared output; 1AM submits during `makeTransfer`, so users must confirm the recipient and amount shown by 1AM. The recipient's incoming Activity entry still needs a fresh UI check.
+- Activity is a browser-local presentation of submitted wallet actions. The directory and balances come from chain and wallet state; Activity is not a global transaction database. Shielded incoming payments cannot be fully reconstructed from the directory.
 
 ## Develop
 
+The v3 contract in `contract/src` is the active Preprod demo. The contract provides handle lookup; the connected wallet moves tNIGHT. `VITE_ZEEP_USE_V2=1` selects the archived v2 directory for local comparison. `VITE_ZEEP_V3_ADDRESS` can override the v3 contract address for a separate deployment. Run `node verify-v3.mjs` from `contract/` to recheck the deployed state and verifier.
+
 ```bash
 cd contract
 npm install
-npm run compile   # compact compile -> managed/zeep
+npx fetch-compactc --version=0.31.1
+npm run compile
+npm run compile:v2
+npm run build
 npm test
-```
+node v2/verify-preprod.mjs
 
-Requires the Midnight toolchain: compact compiler, proof server, Node 22, Docker.
-Contract deploys to Preprod (Levels 1-5); Mainnet at Level 6.
-
-## Usage
-
-Three circuits drive the rail:
-
-- **Register** `register(nameHash)` binds `hash(username)` to your receiver key. The
-  directory entry is the only public part.
-- **Pay** `pay(nameHash)` inserts an opaque note commitment. Amount and payer stay
-  private witnesses; nothing links sender to receiver.
-- **Claim** `claim(commitment)` proves you own the note and publishes a nullifier.
-  A second claim of the same note is rejected.
-
-Run the circuits locally through the simulator:
-
-```bash
-cd contract
+cd ui
 npm install
-npm run compile   # compact compile -> managed/zeep
-npm test          # 4 tests: register / pay / claim / no-amount-on-ledger
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-## Deployment
-
-ZEEP is live on **Midnight Preprod** (verifiable via the Preprod indexer as a
-`ContractDeploy` action):
-
-- **Contract address:** `b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5`
-- **Deploy tx:** `0x84b7773c152d4ef5cf477b4caf70ddf2823b048a03877a2295660d212790d399`
-- **Network:** preprod · **Deployed:** 2026-09-20 (see [contract/deploy/deployed.json](contract/deploy/deployed.json))
-
-Verify:
-
-```bash
-curl -s -H "Content-Type: application/json" \
-  -d '{"query":"query{contractAction(address:\"b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5\"){__typename address}}"}' \
-  https://indexer.preprod.midnight.network/api/v4/graphql
-```
-
-Deploy is headless via `contract/deploy` (`npm run deploy`): it builds a
-`WalletFacade` with a reconnecting dust sync, waits for the dust wallet to sync to
-the chain tip, then submits the deploy tx low-level (`createUnprovenDeployTx` +
-`submitTxAsync`) to avoid the high-level finalization watch that hangs on Preprod.
-Synced wallet state is snapshotted so redeploys skip the multi-hour genesis replay.
-A browser deploy dApp (any injected Midnight wallet) lives in `contract/ui`.
+The UI predev step copies v2 and v3 proving assets into separate directories. The contract compile step requires Compact compiler 0.31.1. The [Preprod test notes](docs/PREPROD_SMOKE_TEST.md) record the verified handle payment and the recipient-history check still to repeat.
 
 ## Links
 
-- Product on X: TODO (add the profile URL once created)
-- Preprod contract address: `b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5`
-- Live demo: TODO (add after frontend deploy)
+- [Preprod v3 contract](https://explorer.1am.xyz/contract/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538?network=preprod)
+- [Live demo](https://zeep-pink.vercel.app/)
+- [Product on X](TODO: add product profile URL)
+- [Product requirements](PRD_ZEEP.md)
+- [Level 5 feedback and submission tracker](docs/LEVEL5_SUBMISSION.md)

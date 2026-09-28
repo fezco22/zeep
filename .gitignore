@@ -1,10 +1,16 @@
 node_modules/
+.compact-bin/
+.tmp-browser*/
+.tmp-brave*/
 dist/
 managed/
 *.log
 .DS_Store
 .env
+.vercel/
 graphify-out/
 .wallet-snapshot/
 deploy/.wallet-snapshot/
 contract/deploy/.wallet-snapshot/
+.vercel
+.env*

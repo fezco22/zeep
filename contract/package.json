@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "compile": "compact compile src/zeep.compact managed/zeep",
+    "compile": "node scripts/compile.mjs src/zeep.compact managed/zeep",
+    "compile:v2": "node scripts/compile.mjs v2/zeep.compact v2/managed/zeep",
     "test": "vitest run",
     "build": "tsc -p tsconfig.json",
     "address": "tsx deploy/derive-address.ts",

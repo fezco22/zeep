@@ -17,20 +17,27 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Compact toolchain
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf \
-            https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Pin Compact compiler (Preprod-compatible)
-        run: compact update 0.31.1
-
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+
+      - name: Install pinned Compact compiler
+        run: npx fetch-compactc --version=0.31.1
 
       - name: Compile contract
         run: npm run compile
 
+      - name: Compile archived v2 proving assets for the app build
+        run: npm run compile:v2
+
       - name: Test
         run: npm test
+
+      - name: Install app dependencies
+        working-directory: contract/ui
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck and build app
+        working-directory: contract/ui
+        run: |
+          npx tsc --noEmit -p tsconfig.json
+          npm run build

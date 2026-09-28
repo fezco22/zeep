@@ -26,7 +26,6 @@ import { MidnightWalletProvider } from "./midnight-wallet-provider.js";
 import { waitForUnshieldedFunds, syncWallet } from "./wallet-utils.js";
 import { generateDust } from "./generate-dust.js";
 import { saveWalletSnapshot } from "./wallet-persist.js";
-import { randomBytes } from "node:crypto";
 import type { ZeepPrivateState } from "../src/witnesses.js";
 
 // Apollo (indexer subscriptions) needs a global WebSocket.
@@ -79,6 +78,7 @@ async function waitForDust(logger: pino.Logger, wallet: unknown): Promise<bigint
 }
 
 async function main(): Promise<void> {
+  throw new Error("Deployment blocked: the registry does not yet verify wallet ownership on-chain.");
   const logger = pino({ level: process.env.DEBUG_LEVEL ?? "info" });
   setNetworkId("preprod");
 
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   }
 
   const zkConfigPath = resolve(process.cwd(), "managed", "zeep");
-  const zkConfigProvider = new NodeZkConfigProvider<"register" | "pay" | "claim">(zkConfigPath);
+  const zkConfigProvider = new NodeZkConfigProvider<"register">(zkConfigPath);
 
   const providers = {
     privateStateProvider: levelPrivateStateProvider<typeof PRIVATE_STATE_ID, ZeepPrivateState>({
@@ -138,11 +138,7 @@ async function main(): Promise<void> {
     midnightProvider: walletProvider,
   };
 
-  const initialPrivateState: ZeepPrivateState = {
-    receiverSk: new Uint8Array(randomBytes(32)),
-    paymentSalt: new Uint8Array(randomBytes(32)),
-    paymentAmount: 0n,
-  };
+  const initialPrivateState: ZeepPrivateState = {};
 
   // Use the low-level path: createUnprovenDeployTx exposes the contract address up
   // front, and submitTxAsync submits WITHOUT the finalization watch that the

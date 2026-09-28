@@ -3,18 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZEEP — get paid by username, privately</title>
+    <title>ZEEP: get paid by username</title>
     <meta
       name="description"
-      content="ZEEP is a private payment rail on Midnight. Share a username, get paid without exposing your wallet history."
+      content="ZEEP maps handles to Midnight tNIGHT receiving addresses. Pay by handle from a connected wallet."
     />
+    <!-- Favicon: the crescent mark inline (no fabricated logo asset, R-23). -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2022%2022'%3E%3Ccircle%20cx='11'%20cy='11'%20r='9'%20fill='none'%20stroke='%23c7a45a'%20stroke-width='1.5'/%3E%3Cpath%20d='M11%202%20a9%209%200%200%201%200%2018%20a6%209%200%200%200%200%20-18'%20fill='%23c7a45a'/%3E%3C/svg%3E"
+    />
+    <!-- Social share (pay-link previews on X, Slack, Discord). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ZEEP" />
+    <meta property="og:title" content="ZEEP: get paid by username" />
+    <meta
+      property="og:description"
+      content="Share a handle. Get paid on Midnight without exposing who paid, how much, or which note is yours."
+    />
+    <meta property="og:image" content="./og.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ZEEP: get paid by username" />
+    <meta name="twitter:description" content="Pay tNIGHT by handle on Midnight Preprod." />
+    <meta name="twitter:image" content="./og.svg" />
     <style>
-      /* Direction: PRD 5.1 — restrained nocturnal fintech. Dials ENERGY 2 / RHYTHM 2 / MOTION 1.
-         Palette (R-31): slate ink + off-white neutral base; ONE accent, moonlight-gold, used
-         only on the primary action, the active nav mark, and the "claimed" success state
-         (moon-phase narrative, one accent one job). Mono ONLY for technical strings
-         (addresses, commitments, tx). No fabricated stats or testimonials (R-17/R-18):
-         the only numbers shown are read live from the chain. */
+      /* Direction: PRD 5.1 — restrained nocturnal fintech. Dials ENERGY 2 / RHYTHM 2 / MOTION 2
+         (MOTION raised for the hero reveal + pointer tilt, per owner request; reduced-motion
+         gets a static frame, endless loops stay forbidden). Display voice: Fraunces.
+          Palette (R-31): slate ink + off-white neutral base; ONE accent, moonlight-gold, used
+          only on the primary action and the active nav mark
+          (moon-phase narrative, one accent one job). Small body text never wears gold in
+          light mode (3.61:1, fails R-25): links/kickers/step numbers/badges rest on ink or
+          muted, gold survives as underline and active-state signal. Active indicators use
+          theme-adaptive --gold (4.0:1 light, 8.75:1 dark) so they clear 3:1 in both themes.
+          Mono ONLY for technical strings (addresses, commitments, tx). No fabricated stats
+          or testimonials (R-17/R-18): the only numbers shown are read live from the chain. */
       :root {
         --surface: #f5f3ee;
         --panel: #ffffff;
@@ -28,22 +51,13 @@
         --err: #b3341f;
         --radius: 10px;
         --radius-lg: 16px;
+        --font-display: "Fraunces", Georgia, "Times New Roman", serif;
         color-scheme: light;
       }
-      :root[data-theme="dark"] {
-        --surface: #14171f;
-        --panel: #191d27;
-        --raise: #1f2431;
-        --line: #2a303c;
-        --muted: #9aa2b2;
-        --text: #e8eaf0;
-        --gold: #d8b76a;
-        --gold-solid: #c7a45a;
-        --ok: #4fd1a1;
-        --err: #f0836e;
-        color-scheme: dark;
-      }
       * { box-sizing: border-box; }
+      /* Ensure the hidden attribute wins over component display rules (.gold/.ghost
+         set display:inline-flex, which would otherwise keep [hidden] buttons visible). */
+      [hidden] { display: none !important; }
       body {
         margin: 0;
         min-height: 100vh;
@@ -54,13 +68,22 @@
         -webkit-font-smoothing: antialiased;
       }
       .mono { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 0.85em; word-break: break-all; }
-      a { color: var(--gold); }
+      /* Links rest on ink (14.87:1, R-25); gold survives only as the underline
+         signal so the accent is not spread across every element (R-01). */
+      a { color: var(--text); text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+      a:hover { text-decoration-thickness: 2px; }
       button, input, textarea, select { font: inherit; color: inherit; }
       :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+      /* Skip link: visible only on keyboard focus (R-32). */
+      .skip { position: absolute; left: 12px; top: -48px; z-index: 50; background: var(--text); color: var(--panel); padding: 10px 16px; border-radius: var(--radius); text-decoration: none; transition: top 160ms ease; }
+      .skip:focus-visible { top: 12px; color: var(--panel); }
+      /* Header gains a soft shadow once scrolled: elevation marks the sticky bar (R-12). */
+      header.top.scrolled { box-shadow: 0 6px 18px rgba(20, 24, 33, 0.08); }
       .wrap { max-width: 940px; margin: 0 auto; padding: 0 20px; }
 
       header.top { border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 10; }
       .bar { max-width: 940px; margin: 0 auto; padding: 13px 20px; display: flex; align-items: center; gap: 14px; }
+      body.app-route .bar { max-width: none; padding-left: 24px; padding-right: 24px; }
       .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; font-size: 18px; }
       .brand svg { display: block; }
       .net { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
@@ -68,68 +91,154 @@
       .navlinks a { color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: var(--radius); font-size: 14px; font-weight: 600; }
       .navlinks a:hover { color: var(--text); }
       .spacer { flex: 1; }
-      .ghost { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; cursor: pointer; }
+      .ghost { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease; }
       .ghost:hover { border-color: var(--gold); }
-      .gold { background: var(--gold-solid); color: #141821; border: 0; border-radius: var(--radius); padding: 10px 16px; font-weight: 700; cursor: pointer; }
+      .gold { background: var(--gold-solid); color: #141821; border: 0; border-radius: var(--radius); padding: 10px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease; }
+      .navitem { transition: background 160ms ease, color 160ms ease, border-color 160ms ease; }
       .gold:disabled { opacity: 0.5; cursor: not-allowed; }
       .gold:not(:disabled):hover { filter: brightness(1.06); }
+      .wallet-menu { position: relative; }
+      .wallet-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; max-width: 230px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); cursor: pointer; font-size: 13px; font-weight: 700; }
+      .wallet-chip:hover { border-color: var(--gold); background: var(--surface); }
+      .wallet-chip .wmark { width: 8px; height: 8px; border-radius: 999px; background: var(--gold-solid); flex: none; }
+      .wallet-chip .wlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .wallet-chip .wchev { color: var(--muted); font-size: 12px; }
+      .wallet-popover { position: absolute; top: calc(100% + 10px); right: 0; z-index: 30; width: min(360px, calc(100vw - 32px)); padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 18px 42px rgba(20,24,33,.16); }
+      .wallet-popover[hidden] { display: none; }
+      .wallet-popover .wtitle { margin: 0 0 6px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+      .wallet-popover .waddress { margin: 0 0 12px; color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+      .wallet-popover .wactions { display: flex; gap: 8px; }
+      .wallet-popover .wactions > * { flex: 1; }
 
-      /* HERO: asymmetric two-column (text + public/private ledger card). RHYTHM 2:
-         later sections use different compositions (steps row, persona grid, FAQ list). */
-      .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; padding: 64px 0 40px; }
-      h1.title { font-size: 52px; line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 18px; }
-      h1.title .p { color: var(--gold); display: block; }
-      .hero p.sub { color: var(--muted); font-size: 18px; margin: 0 0 26px; max-width: 46ch; }
-      .claim { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+      /* Hero: clear headline, one registration action, room to breathe. */
+      .herosec { position: relative; overflow: hidden; min-height: min(700px, calc(100svh - 70px)); display: flex; align-items: center; color: var(--text); background: radial-gradient(ellipse at 50% 40%, rgba(199,164,90,.1), transparent 42%), var(--surface); border-bottom: 1px solid var(--line); }
+      .hero { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-items: center; padding: 68px 0 76px; width: 100%; margin: 0 auto; }
+      .hero-copy { min-width: 0; }
+      .hero-copy { max-width: 760px; text-align: center; }
+      .heroeyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 22px; }
+      .heroeyebrow::before, .heroeyebrow::after { content: ""; width: 22px; height: 1px; background: var(--gold-solid); }
+      h1.title { font-size: clamp(44px, 6vw, 76px); line-height: .99; letter-spacing: -0.045em; margin: 0 auto 22px; color: var(--text); max-width: 12ch; }
+      h1.title .p { color: var(--gold-solid); display: block; }
+      .hero-handle-demo { display: flex; justify-content: center; align-items: baseline; gap: 9px; min-height: 52px; margin: -9px 0 18px; color: var(--muted); font-size: 14px; }
+      .hero-handle-roll { display: inline-flex; align-items: baseline; gap: 2px; color: var(--gold); font-family: var(--font-display); font-size: clamp(30px, 3.8vw, 40px); font-weight: 600; line-height: 1.2; }
+      #rollName { display: inline-block; min-width: 4ch; text-align: left; opacity: 1; transform: translateY(0); filter: blur(0); transition: opacity 280ms cubic-bezier(.2,.75,.25,1), transform 280ms cubic-bezier(.2,.75,.25,1), filter 280ms cubic-bezier(.2,.75,.25,1); }
+      #rollName.out { opacity: 0; transform: translateY(-.2em); filter: blur(2px); }
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+      @media (prefers-reduced-motion: reduce) { #rollName { transition: none; } }
+      /* Display voice (R-06): Fraunces carries headlines and handle figures; body keeps
+         the system sans for number legibility, mono stays on technical strings. */
+      h1.title, h2.sec, .handle-big, .viewtitle { font-family: var(--font-display); }
+      .hero p.sub { color: var(--muted); font-size: clamp(16px, 1.5vw, 18px); line-height: 1.6; margin: 0 auto 28px; max-width: 44ch; }
+      .hero p.sub .mono { color: var(--text); }
+      .claim { display: flex; align-items: stretch; justify-content: center; gap: 10px; flex-wrap: wrap; width: 100%; max-width: 520px; margin: 0 auto; }
       .claim .handle-wrap { flex: 1; min-width: 220px; }
-      .handle-wrap { display: flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding-left: 12px; }
+      .handle-wrap { display: flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding-left: 14px; }
+      .handle-wrap:focus-within { outline: 2px solid var(--gold-solid); outline-offset: 2px; }
+      .handle-wrap input:focus { outline: none; }
       .handle-wrap span { color: var(--muted); }
-      .handle-wrap input { border: 0; background: transparent; padding: 12px 10px; flex: 1; outline: none; width: 100%; }
-      .microcopy { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+      .handle-wrap input { border: 0; background: transparent; padding: 14px 10px; flex: 1; outline: none; width: 100%; color: var(--text); }
+      .handle-wrap input::placeholder { color: var(--muted); }
+      .btn-lg { padding: 15px 26px; font-size: 16px; border-radius: 12px; }
+      .ghost-light { background: transparent; border: 1px solid rgba(255,255,255,0.28); color: #f4efe2; }
+      .ghost-light:hover { border-color: var(--gold-solid); background: rgba(255,255,255,0.05); }
+      .hero .microcopy { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 12px auto 0; max-width: 46ch; }
+      /* Product showcase sits between the how-it-works and audience sections. */
+      .product-showcase { position: relative; overflow: hidden; padding: clamp(64px, 8vw, 104px) 0 clamp(50px, 7vw, 84px); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: radial-gradient(ellipse at 50% 74%, rgba(199,164,90,.14), transparent 48%), var(--raise); }
+      .showcase-copy { max-width: 720px; margin: 0 auto; text-align: center; }
+      .showcase-copy .kicker { margin-bottom: 10px; }
+      .showcase-title { font-size: clamp(30px, 4.5vw, 48px); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 12px; }
+      .showcase-lead { max-width: 50ch; margin: 0 auto; color: var(--muted); font-size: 16px; line-height: 1.65; }
+      .showcase-visual { position: relative; max-width: 1080px; margin: 22px auto -30px; perspective: 1600px; }
+      .showcase-visual::before { content: ""; position: absolute; left: 15%; right: 15%; bottom: 8%; height: 16%; border-radius: 50%; background: rgba(25,29,38,.18); filter: blur(44px); pointer-events: none; }
+      .showcase-visual > img { display: block; width: 100%; height: auto; }
+      .showcase-enter { transform-style: preserve-3d; }
+      .tilted-card-frame { position: relative; width: 100%; transform-style: preserve-3d; will-change: transform; }
+      .tilted-card-frame img { display: block; width: 100%; height: auto; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+      @media (prefers-reduced-motion: reduce) { .tilted-card-frame { will-change: auto; } }
 
-      /* Ledger card: an honest schematic of what is public vs private, not a fake
-         product screenshot (R-38, C-5). Directly serves the privacy pitch. */
-      .ledgercard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
-      .ledgercard h3 { margin: 0 0 14px; font-size: 14px; color: var(--muted); font-weight: 600; }
-      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-      .col h4 { margin: 0 0 8px; font-size: 12px; text-transform: none; color: var(--muted); }
+      /* Ledger card: dark glass, the ONE glassmorphic surface (dose cap, R-10). Honest
+         public/private schematic, not a fake screenshot (R-38). */
+      .ledgercard { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 24px 60px rgba(8,10,14,0.4); }
+      .ledgercard h3 { margin: 0 0 16px; font-size: 13px; color: rgba(244,239,226,0.7); font-weight: 600; }
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .col h4 { margin: 0 0 10px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+      .col.pub h4 { color: rgba(244,239,226,0.5); }
+      .col.priv h4 { color: var(--gold-solid); }
       .col ul { margin: 0; padding: 0; list-style: none; font-size: 13px; }
-      .col li { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+      .col li { padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.12); color: #e8e2d3; }
       .col li:last-child { border-bottom: 0; }
-      .col.pub { }
-      .col.priv { border-left: 2px solid var(--gold-solid); padding-left: 12px; }
+      .col.priv { border-left: 2px solid var(--gold-solid); padding-left: 14px; }
+      /* Scroll cue: static line (no endless loop; reduced-motion safe). */
+      .scrollcue { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(244,239,226,0.5); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+      .scrollcue .dotline { width: 1px; height: 36px; background: linear-gradient(rgba(244,239,226,0.55), transparent); }
 
       section.band { padding: 48px 0; border-top: 1px solid var(--line); }
-      .kicker { color: var(--gold); font-size: 13px; font-weight: 700; letter-spacing: 0.02em; margin: 0 0 6px; }
-      h2.sec { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+      /* Kicker rests on muted (5.51:1, R-25); the accent is reserved for the
+         primary action and active marks, not every section label. */
+      .kicker { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: 0.02em; margin: 0 0 6px; }
+      h2.sec { font-size: clamp(22px, 3.5vw, 28px); letter-spacing: -0.02em; margin: 0 0 6px; }
       p.lead { color: var(--muted); margin: 0 0 28px; max-width: 56ch; }
 
-      /* How it works: the real three-circuit flow, not a forced 3-step template.
-         Varied widths (the claim step is emphasized as the payoff). */
-      .steps { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 16px; }
-      .step { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
-      .step .n { font-family: ui-monospace, monospace; color: var(--gold); font-size: 13px; }
-      .step h3 { margin: 8px 0 6px; font-size: 17px; }
-      .step p { margin: 0; color: var(--muted); font-size: 14px; }
-      .step.pay { border-color: var(--gold-solid); }
+      /* How it works: a NUMBERED FLOW, not a card grid. Big outlined numerals carry the
+         sequence (register, then pay); no boxes. Reads differently from the editorial
+         list below it (RHYTHM 2, no repeated card format). */
+      .flow { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 48px; }
+      .flowstep { display: flex; gap: 20px; align-items: flex-start; }
+      .flownum { font-family: var(--font-display); font-size: clamp(46px, 6vw, 62px); line-height: 0.8; color: transparent; -webkit-text-stroke: 1.4px var(--gold-solid); flex: none; }
+      .flowstep .flowtag { font-family: ui-monospace, monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+      .flowstep.pay .flowtag { color: var(--gold); }
+      .flowstep h3 { font-family: var(--font-display); font-size: clamp(19px, 2.4vw, 23px); margin: 6px 0 8px; }
+      .flowstep p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 34ch; }
 
-      .personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-      .persona { background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
-      .persona h3 { margin: 0 0 6px; font-size: 16px; }
-      .persona p { margin: 0; color: var(--muted); font-size: 14px; }
+      /* Who it is for: an EDITORIAL HAIRLINE LIST (label left, description right), no
+         boxes and no colored stripe. A deliberately different shape from the flow. */
+      .whofor { display: flex; flex-direction: column; }
+      .who { display: grid; grid-template-columns: 0.75fr 1.6fr; gap: 24px 40px; padding: 26px 0; border-top: 1px solid var(--line); align-items: baseline; transition: padding-left 200ms ease; }
+      .whofor .who:last-child { border-bottom: 1px solid var(--line); }
+      .who h3 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 26px); margin: 0; transition: color 200ms ease; }
+      .who p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+      .who:hover { padding-left: 12px; }
+      .who:hover h3 { color: var(--gold); }
+      @media (prefers-reduced-motion: reduce) { .who:hover { padding-left: 0; } }
+
+      .gold:not(:disabled):hover { transform: translateY(-1px); }
+
+      /* CTA: a low horizontal banner rather than a tall feature card. The broken
+         corner and fine inner rule give it a distinct ZEEP shape while keeping the
+         action easy to scan in one line. */
+      #cta { padding: 72px 0; }
+      #cta .wrap { max-width: 1120px; }
+      .ctacard { position: relative; overflow: hidden; min-height: 228px; margin: 0 auto; display: grid; grid-template-columns: 150px minmax(0, 1fr) 218px; align-items: center; gap: 28px 42px; background: radial-gradient(circle at 88% 15%, rgba(199,164,90,.2), transparent 24%), linear-gradient(115deg, #202735, #141821 72%); border: 1px solid #38404b; border-radius: 18px 18px 42px 18px; padding: 36px 46px; box-shadow: 0 22px 52px rgba(20, 24, 33, 0.14); color: #f8f4e9; }
+      .ctacard > * { position: relative; z-index: 1; }
+      .ctavisual { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+      .ctacopy { min-width: 0; }
+      .ctactions { min-width: 0; display: flex; flex-direction: column; align-items: stretch; }
+      .ctacard .kicker { color: #ddc586; margin: 0; }
+      .ctacard .sec { font-family: var(--font-display); font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: -0.03em; max-width: 17ch; margin: 0 0 12px; }
+      .ctacard .sec .gtxt { color: #ddc586; }
+      .ctacard .lead { color: #d6d3cc; font-size: 15px; margin: 0; max-width: 42ch; }
+      .ctabtns { display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 0; }
+      .ctabtns a { text-decoration: none; }
+      .ctacard .microcopy { color: #c8c5bd; margin: 10px 0 0; font-size: 12px; }
+      .ctacard .ghost { color: #f8f4e9; border-color: #6a6c70; }
+      .ctacard .ghost:hover { background: rgba(255,255,255,.08); }
 
       /* App */
       #app { scroll-margin-top: 72px; }
       nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 22px 0 20px; flex-wrap: wrap; }
-      .tab { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; cursor: pointer; color: var(--muted); font-weight: 600; }
-      .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--gold-solid); }
+      .tab { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; min-height: 44px; cursor: pointer; color: var(--muted); font-weight: 600; }
+      .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--gold); }
       .tab:hover { color: var(--text); }
       .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; }
       .panel[hidden] { display: none; }
+      /* Requests view: Pay is the flagship action, so its panel carries the gold
+         edge (the view's one focal point); Register stays neutral (R-14). */
+      #p-pay { border-color: var(--gold); }
       h2.h { margin: 0 0 4px; font-size: 18px; }
       .hint { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
       label.field { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
       input.in, textarea.in { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; }
+      input.in:focus, textarea.in:focus { border-color: var(--gold); }
       .stack > * + * { margin-top: 16px; }
       .note { font-size: 13px; color: var(--muted); }
       .arc { transition: transform 240ms ease; }
@@ -142,119 +251,346 @@
       .kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
       .kv:last-child { border-bottom: 0; }
       .kv .k { color: var(--muted); }
-      .kv .v { text-align: right; }
+      .kv .v { text-align: right; min-width: 0; overflow-wrap: anywhere; }
       .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
       pre.log { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; color: var(--muted); max-height: 160px; overflow: auto; margin: 16px 0 0; }
       pre.log:empty { display: none; }
 
-      /* FAQ: native details/summary, keyboard-operable, real product questions. */
-      details.faq { border-bottom: 1px solid var(--line); padding: 4px 0; }
-      details.faq summary { cursor: pointer; padding: 14px 2px; font-weight: 600; list-style: none; }
-      details.faq summary::-webkit-details-marker { display: none; }
-      details.faq summary::after { content: "+"; float: right; color: var(--muted); }
-      details.faq[open] summary::after { content: "–"; }
-      details.faq p { margin: 0 2px 14px; color: var(--muted); font-size: 14px; }
+      /* App shell: PIVY-style left sidebar + content column. The nav dot is the ONE
+         accent doing active-state duty (R-19), not decoration. No icon library
+         (R-04): a text label plus a state dot carries the meaning. */
+      #appShell[hidden] { display: none; }
+      .shell { width: 100%; max-width: none; margin: 0; display: grid; grid-template-columns: 224px minmax(0, 1080px); gap: 48px; padding: 26px 32px 72px 24px; align-items: start; }
+      /* Gated (sign-in / claim handle): no sidebar, one centered card, roomy. */
+      .shell.gated { grid-template-columns: 1fr; }
+      .shell.gated .side { display: none; }
+      body.app-gated header.top { display: none; }
+      .shell.gated { position: relative; width: 100%; max-width: none; min-height: 100vh; align-items: center; padding: 28px 24px; }
+      .shell.gated .content { width: min(100%, 410px); max-width: 410px; margin: 0 auto; }
+      .shell.gated #loginGate, .shell.gated #handleGate { position: static; border: 0; background: transparent; box-shadow: none; padding: 18px 12px 28px; text-align: center; }
+      .app-gate-back { display: none; position: fixed; top: 22px; left: 22px; z-index: 50; place-items: center; width: 44px; height: 44px; color: var(--muted); font-size: 28px; line-height: 1; text-decoration: none; border-radius: 999px; transition: color 160ms ease, background 160ms ease, transform 160ms ease; }
+      .app-gated .app-gate-back { display: grid; }
+      .app-gate-back:hover { color: var(--text); transform: translateX(-2px); }
+      .gate-mark { display: grid; place-items: center; width: 50px; height: 50px; margin: 0 auto 22px; border-radius: 15px; background: var(--gold-solid); color: #141821; box-shadow: 0 8px 24px rgba(154,123,46,.18); }
+      .gate-mark svg { width: 29px; height: 29px; }
+      .shell.gated #loginGate .h { font-family: var(--font-display); font-size: clamp(30px, 5vw, 42px); margin: 0 0 10px; letter-spacing: -0.03em; }
+      .shell.gated #handleGate .h { font-family: var(--font-display); font-size: clamp(30px, 5vw, 42px); margin: 0 0 10px; letter-spacing: -0.03em; }
+      .gate-copy { max-width: 34ch; margin: 0 auto 28px; color: var(--muted); font-size: 16px; line-height: 1.5; }
+      .gate-connect { width: min(100%, 380px); min-height: 56px; }
+      .gate-handle-field { width: min(100%, 380px); margin: 0 auto 14px; }
+      .gate-handle-submit { width: min(100%, 380px); min-height: 56px; }
+      .gate-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+      .side { position: sticky; top: 78px; display: flex; flex-direction: column; gap: 18px; }
+      .sidenav { display: flex; flex-direction: column; gap: 2px; }
+      .navitem { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 15px; padding: 10px 12px; min-height: 44px; border-radius: var(--radius); border: 1px solid transparent; }
+      .navitem:hover { color: var(--text); background: var(--panel); }
+      .navitem[aria-current="page"] { color: var(--text); background: var(--panel); border-color: var(--line); }
+      .navitem .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--line); flex: none; transition: background 160ms ease; }
+      .navitem[aria-current="page"] .dot { background: var(--gold); }
+      .sidefoot { display: flex; flex-direction: column; gap: 10px; }
+      .betacard { font-size: 12px; color: var(--muted); background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; line-height: 1.4; }
+      .backlink { font-size: 13px; color: var(--muted); text-decoration: none; }
+      .backlink:hover { color: var(--text); }
+      .content { min-width: 0; }
+      .view[hidden] { display: none; }
+      .viewtitle { font-size: clamp(20px, 3vw, 24px); letter-spacing: -0.02em; margin: 2px 0 18px; }
+      .view .panel + .panel { margin-top: 18px; }
 
-      footer { color: var(--muted); font-size: 13px; padding: 40px 0 56px; border-top: 1px solid var(--line); }
+      /* Dashboard hero: the ONE emphasized surface. Nocturnal slate->gold gradient
+         carries the moon-phase identity (purpose = top of hierarchy, R-01); crescent
+         watermark is the brand motif, not stock decoration. Dark in both themes by
+         design. */
+      .herocard { position: relative; overflow: hidden; border-radius: var(--radius-lg); padding: 24px 26px; margin-bottom: 18px; color: #f6f1e4; background: radial-gradient(130% 150% at 100% 0%, #3a3016 0%, #20242e 52%, #171a22 100%); border: 1px solid #2a2f3b; }
+      .herocard .moon { position: absolute; right: -26px; top: -26px; pointer-events: none; }
+      .herocard .eyebrow { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold-solid); margin: 0 0 10px; font-weight: 700; }
+      .handle-big { font-size: clamp(24px, 5vw, 30px); font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+      .balbig { font-family: var(--font-display); font-size: clamp(34px, 6vw, 46px); font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 10px; color: #fbf7ec; }
+      .balunit { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; color: var(--gold-solid); letter-spacing: 0; }
+      .balcard .handle-sub { color: #b9b1a0; margin: 0; }
+      .balance-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
+      .balance-copy { min-width: 0; }
+      .balance-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin: 0 0 2px; position: relative; z-index: 1; }
+      .balance-action-primary { background: var(--gold-solid); color: #141821; }
+      .balance-action-primary:hover { background: #ddc586; }
+      .handle-sub { color: #b9b1a0; font-size: 13px; margin: 6px 0 18px; max-width: 44ch; }
+      .sharebar { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.13); border-radius: var(--radius); padding: 8px 8px 8px 12px; position: relative; z-index: 1; }
+      .sharebar .url { flex: 1; min-width: 0; font-family: ui-monospace, monospace; font-size: 13px; color: #e8e2d3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .iconbtn { background: rgba(255,255,255,0.1); border: 0; color: #f6f1e4; border-radius: 8px; padding: 8px 14px; min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; font-weight: 600; }
+      .iconbtn:hover { background: rgba(255,255,255,0.22); }
+      .iconbtn.cta { margin-top: 4px; }
+      .qrbox { margin-top: 16px; background: #fff; border-radius: var(--radius); padding: 12px; width: max-content; position: relative; z-index: 1; }
+      .qrbox[hidden] { display: none; }
+      .qrbox svg { display: block; width: 148px; height: 148px; }
+      .qrbox.light { background: #fff; border: 1px solid var(--line); margin: 0 0 12px; }
+      .qr-modal { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 20px; background: rgba(20,24,33,.52); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+      .qr-modal[hidden] { display: none; }
+      .qr-dialog { width: min(100%, 390px); padding: 22px; border: 1px solid #3d4653; border-radius: 18px; background: radial-gradient(circle at 100% 0, rgba(199,164,90,.2), transparent 35%), linear-gradient(145deg, #202735, #151922); color: #f7f1e4; box-shadow: 0 24px 70px rgba(10,12,17,.35); text-align: center; }
+      .qr-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; text-align: left; }
+      .qr-modal-head .h { margin: 0; color: #f7f1e4; font-family: var(--font-display); font-size: 24px; }
+      .qr-modal-head .kicker { color: #ddc586; }
+      .qr-frame { display: grid; place-items: center; width: min(100%, 250px); aspect-ratio: 1; margin: 22px auto 14px; padding: 14px; border: 1px solid rgba(221,197,134,.7); border-radius: 14px; background: #fbf8f0; box-shadow: 0 10px 30px rgba(0,0,0,.22); }
+      .qr-frame svg { display: block; width: 100%; height: 100%; }
+      .qr-route { margin: 0; color: #ddc586; font-family: ui-monospace, monospace; font-size: 18px; font-weight: 700; }
+      .qr-url { margin: 6px auto 0; max-width: 34ch; overflow: hidden; color: rgba(247,241,228,.62); text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 11px; }
+      .qr-modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+      .qr-modal-actions > * { flex: 1; }
+      .qr-dialog .ghost { color: #f7f1e4; border-color: rgba(255,255,255,.28); }
+
+      /* Amount type: a real 2-state segmented control (Open/Fixed), active state
+         carried by the ink fill (PIVY's black pill, ZEEP ink). */
+      .segduo { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 3px; }
+      .seg { border: 0; background: transparent; color: var(--muted); padding: 10px 22px; min-height: 44px; border-radius: 7px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+      .seg[aria-pressed="true"] { background: var(--text); color: var(--panel); }
+      .ghost.sm { padding: 8px 12px; font-size: 13px; min-height: 44px; min-width: 44px; }
+      .reqcard { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+      .reqcard-wrap:last-child .reqcard { border-bottom: 0; }
+      .reqcard .meta { flex: 1; min-width: 0; }
+      .reqcard .rl { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+      .reqcard .ru { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .reqcard .acts { display: flex; gap: 6px; flex: none; }
+      .badge { font-size: 11px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+
+      /* Activity: a quiet transaction list, not a raw console dump. */
+      .activity-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+      .activity-head .h { margin: 0 0 5px; }
+      .activity-head .hint { margin: 0; max-width: 58ch; }
+      .activity-badge { flex: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+      .activity-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 20px; }
+      .activity-kpi { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+      .activity-kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+      .activity-kpi .value { margin-top: 5px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+      .datehdr { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); margin: 20px 0 8px; }
+      .datehdr:first-child { margin-top: 0; }
+      .act { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 15px 14px; margin: 8px 0; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease; }
+      .act:hover { border-color: #c9b478; box-shadow: 0 8px 24px rgba(20,24,33,.06); transform: translateY(-2px); }
+      .dir { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 12px; font-weight: 800; letter-spacing: .02em; flex: none; border: 1px solid var(--line); }
+      .dir.up { color: #9c4c4c; background: #fff3f1; border-color: #ecd2ce; }
+      .dir.down { color: #2f7958; background: #edf7f1; border-color: #cce5d7; }
+      .dir.reg { color: #96752c; background: #fbf5e7; border-color: #eadbb2; }
+      .ameta { min-width: 0; }
+      .atitle { font-weight: 700; font-size: 14px; }
+      .asub { color: var(--muted); font-size: 13px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .atime { color: var(--muted); font-size: 11px; margin-top: 6px; }
+      .aamt { min-width: 118px; text-align: right; font-weight: 750; font-size: 14px; white-space: nowrap; }
+      .aamt.pos { color: var(--ok); }
+      .aamt.neg { color: var(--err); }
+      .aamt.neutral { color: var(--muted); font-size: 12px; font-weight: 600; }
+      .balance-warning { color: #9a6b16; }
+      .atx { display: inline-grid; place-items: center; width: 25px; height: 25px; margin-top: 6px; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; text-decoration: none; font-size: 14px; line-height: 1; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
+      .atx:hover { color: var(--text); border-color: var(--gold); background: var(--surface); }
+
+      /* Wallet actions open from the balance card so sending and requesting stay in
+         one focused flow. The backdrop closes on click or Escape. */
+      body.modal-open { overflow: hidden; }
+      .payment-modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(20,24,33,.48); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+      .payment-modal[hidden] { display: none; }
+      .payment-dialog { width: min(100%, 500px); max-height: min(720px, calc(100vh - 40px)); overflow-x: hidden; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: 0 24px 70px rgba(20,24,33,.22); }
+      #payCtx { overflow-wrap: anywhere; }
+      .payment-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+      .payment-modal-head .h { margin: 0; font-family: var(--font-display); font-size: 25px; }
+      .modal-close { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font-size: 23px; line-height: 1; }
+      .modal-close:hover { color: var(--text); border-color: var(--gold); }
+      .modal-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 18px 0 20px; }
+      .modal-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding: 10px 14px; min-height: 44px; cursor: pointer; font-weight: 700; }
+      .modal-tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--gold); }
+      .modal-request-list { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+      .modal-request-list:empty { display: none; }
+      @media (max-width: 560px) { .activity-head { display: block; } .activity-badge { display: inline-block; margin-top: 12px; } .activity-kpis { gap: 7px; } .activity-kpi { padding: 10px; } .activity-kpi .value { font-size: 17px; } .act { grid-template-columns: 38px minmax(0, 1fr); gap: 11px; } .dir { width: 38px; height: 38px; } .aamt { grid-column: 2; min-width: 0; text-align: left; margin-top: -7px; } .atx { max-width: 100%; } .balance-row { display: block; } .balance-actions { justify-content: stretch; margin-top: 18px; } .balance-actions .iconbtn { flex: 1; } }
+
+      /* Settings rows + danger controls. */
+      .settingrow { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+      .settingrow:last-child { border-bottom: 0; }
+      .danger { background: transparent; border: 1px solid var(--err); color: var(--err); border-radius: var(--radius); padding: 9px 14px; min-height: 44px; cursor: pointer; font-weight: 600; }
+      .danger:hover { background: var(--err); color: #fff; }
+
+      /* Tablet (<=920px): hero and card grids stack first, while the app sidebar
+         keeps its two-column shell. Three deliberate states across the width range
+         (full, stacked-cards, single-column), never a squeezed desktop (R-03). */
+      @media (max-width: 920px) {
+        .herosec { min-height: auto; }
+        .hero { padding: 56px 0 64px; }
+        .hero-copy { width: 100%; max-width: 650px; margin: 0 auto; text-align: center; }
+        .hero p.sub { margin-left: auto; margin-right: auto; }
+        .claim { margin-left: auto; margin-right: auto; justify-content: center; }
+        .hero .microcopy { margin-left: auto; margin-right: auto; }
+        .showcase-visual { margin: 26px auto -20px; }
+        .flow { grid-template-columns: 1fr; }
+        .who { grid-template-columns: 1fr; gap: 8px; }
+        .flownum { font-size: 42px; }
+      }
+      @media (max-width: 760px) {
+        .shell { grid-template-columns: 1fr; gap: 14px; padding-top: 16px; }
+        .side { position: static; }
+        .sidenav { flex-direction: row; flex-wrap: wrap; }
+        .navitem { font-size: 14px; }
+        /* Mobile register: tighter section rhythm, denser cards (R-05). */
+        section.band { padding: 30px 0; }
+        .panel { padding: 18px; }
+        .herocard { padding: 20px; }
+        /* Public/private ledger card stacks; the private edge becomes a top rule
+           so the gold signal survives the reflow. */
+        .split { grid-template-columns: 1fr; }
+        .col.priv { border-left: 0; border-top: 2px solid var(--gold); padding-left: 0; padding-top: 12px; }
+        .claim .gold { flex: 1; white-space: nowrap; }
+      }
+      /* Small phones (<=560px): the Preprod status pill hides from the top bar
+         (it stays visible in the sidebar card and Settings), request actions go
+         full-width so thumbs land on 44px targets with room (R-03). */
+      @media (max-width: 560px) {
+        .net { display: none; }
+        .bar { gap: 10px; padding: 11px 14px; }
+        .brand { font-size: 16px; }
+        .reqcard .acts { width: 100%; }
+        .reqcard .acts .ghost.sm { flex: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; }
+        .reveal { opacity: 1; transform: none; }
+      }
+
+      /* FAQ: native details/summary, keyboard-operable, real product questions. */
+      /* FAQ accordion: smooth open/close via grid-template-rows 0fr->1fr (no jump). */
+      .faqitem { border-bottom: 1px solid var(--line); }
+      .faqq { width: 100%; text-align: left; background: transparent; border: 0; font-family: inherit; color: var(--text); font-weight: 600; font-size: clamp(15px, 1.6vw, 17px); padding: 20px 2px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      .faqq .mk { flex: none; color: var(--muted); font-size: 22px; font-weight: 400; line-height: 1; transition: transform 280ms cubic-bezier(0.2, 0, 0, 1); }
+      .faqitem.open .faqq .mk { transform: rotate(45deg); color: var(--gold); }
+      .faqa { height: 0; overflow: hidden; transition: height 340ms cubic-bezier(0.22, 1, 0.36, 1); }
+      .faqa > div { overflow: hidden; }
+      .faqa p { margin: 0 2px 20px; color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 64ch; }
+
+      /* Scroll reveal (MOTION 2): one gentle rise per card, fired once by
+         IntersectionObserver. Stagger via data-d. Gated on .js so content never
+         hides when scripts fail (C-4); forced visible under reduced motion. */
+      .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms ease; }
+      .js .reveal.in { opacity: 1; transform: none; }
+      .js .reveal[data-d="1"] { transition-delay: 90ms; }
+      .js .reveal[data-d="2"] { transition-delay: 180ms; }
+      .view:not([hidden]), .panel:not([hidden]), .status:not([hidden]) { animation: enter-soft 300ms cubic-bezier(.22,1,.36,1) both; }
+      @keyframes enter-soft { from { opacity: .55; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { .view, .panel, .status, .act { animation: none !important; transform: none !important; } }
+
+      /* Footer: subtle raised band, three real columns (R-24) over a bottom bar with
+         the copyright and testnet disclaimer. */
+      footer { color: var(--muted); font-size: 13px; padding: 60px 0 0; border-top: 1px solid var(--line); background: var(--raise); }
+      .footinner { display: grid; grid-template-columns: 1.5fr 0.8fr 1.1fr; gap: 40px; padding-bottom: 44px; }
+      .footinner h3 { margin: 0 0 12px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+      .flinks { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; }
+      .flinks a { color: var(--text); text-decoration: none; }
+      .flinks a:hover { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+      .fbrand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 12px; }
+      .fnote { margin: 10px 0 0; max-width: 36ch; line-height: 1.55; }
+      .fmono { display: block; word-break: break-all; margin-bottom: 10px; color: var(--text); }
+      .fbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 0; border-top: 1px solid var(--line); font-size: 12px; }
 
       @media (max-width: 760px) {
-        .hero { grid-template-columns: 1fr; gap: 28px; padding: 40px 0 24px; }
-        h1.title { font-size: 38px; }
-        .steps { grid-template-columns: 1fr; }
-        .personas { grid-template-columns: 1fr; }
         .navlinks { display: none; }
         .brand span.full { display: none; }
+        .footinner { grid-template-columns: 1fr; gap: 28px; }
+        .fbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+        .ctacard { grid-template-columns: 1fr; gap: 18px; min-height: 0; padding: 30px 24px; }
+        .ctavisual { min-height: 52px; }
+        .ctacard .sec { max-width: 22ch; }
+        .ctabtns { flex-direction: row; flex-wrap: wrap; }
       }
     </style>
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <header class="top">
       <div class="bar">
-        <div class="brand">
-          <!-- Identity motif: waxing crescent -> full (PRD). Inline geometry, no fabricated
-               logo asset (R-23). The right disc fills to full on a successful claim. -->
+        <a class="brand" href="#/" aria-label="ZEEP home" style="text-decoration: none; color: inherit">
+          <!-- Identity motif: waxing crescent (PRD). Inline geometry, no fabricated
+               logo asset (R-23). Static mark, no animation (MOTION 1). Clickable -> home. -->
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
             <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gold-solid)" stroke-width="1.5" />
             <path id="brandArc" class="arc" d="M11 2 a9 9 0 0 1 0 18 a6 9 0 0 0 0 -18" fill="var(--gold-solid)" />
           </svg>
           <span>ZEEP</span>
-        </div>
-        <span class="net">Preprod</span>
+        </a>
         <nav class="navlinks" aria-label="Sections">
           <a href="#how">How it works</a>
           <a href="#faq">FAQ</a>
         </nav>
         <div class="spacer"></div>
-        <button class="ghost" id="theme" aria-label="Toggle light and dark theme">Dark</button>
-        <a class="gold" id="launchApp" href="#/login" role="button" style="text-decoration: none">Launch app</a>
+        <a class="gold" id="launchApp" href="#/app/dashboard" role="button" style="text-decoration: none">Launch app</a>
         <button class="gold" id="connect" hidden>Connect wallet</button>
+        <div class="wallet-menu" id="walletMenu" hidden>
+          <button class="wallet-chip" id="walletButton" type="button" aria-expanded="false" aria-controls="walletPopover">
+            <span class="wmark" aria-hidden="true"></span><span class="wlabel" id="walletLabel">Wallet</span><span class="wchev" aria-hidden="true">⌄</span>
+          </button>
+          <div class="wallet-popover" id="walletPopover" hidden>
+            <p class="wtitle">Connected wallet</p>
+            <p class="waddress" id="walletAddress">—</p>
+            <div class="wactions">
+              <button class="ghost sm" id="copyWalletAddress" type="button">Copy address</button>
+              <button class="danger" id="disconnectWallet" type="button">Disconnect wallet</button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <main>
-      <!-- HERO -->
-      <div class="wrap landing">
-        <div class="hero">
-          <div>
-            <h1 class="title">Get paid by username.<span class="p">Stay private.</span></h1>
-            <p class="sub">
-              Share a handle like <span class="mono">@riri</span>. Clients pay it. The chain records only an
-              opaque note, never who paid, how much, or which note is yours.
-            </p>
-            <div class="claim">
-              <div class="handle-wrap"><span>@</span><input id="heroHandle" autocomplete="off" spellcheck="false" placeholder="your-handle" aria-label="Choose your handle" /></div>
-              <button class="gold" id="heroClaim">Claim this handle</button>
+    <main id="main">
+      <!-- HERO: one registration action beside an honest, static app preview. -->
+      <section class="herosec landing" aria-label="Introduction">
+        <div class="wrap">
+          <div class="hero">
+            <div class="hero-copy">
+              <p class="heroeyebrow">Your wallet, by handle</p>
+              <h1 class="title">Get paid by <span class="p">handle.</span></h1>
+              <div class="hero-handle-demo">
+                <span>A handle can look like</span>
+                <span class="hero-handle-roll" aria-hidden="true">@<span id="rollName">zeep</span></span>
+                <span class="sr-only">Examples include @zeep, @maya, @raka, and @nara.</span>
+              </div>
+              <p class="sub">Choose a handle on Midnight. Share it so people can send tNIGHT straight to your wallet.</p>
+              <div class="claim">
+                <div class="handle-wrap"><span aria-hidden="true">@</span><input id="heroHandle" autocomplete="off" spellcheck="false" placeholder="handle" aria-label="Choose your handle" /></div>
+                <button class="gold btn-lg" id="heroClaim" type="button">Register</button>
+              </div>
+              <p class="microcopy">Transfers are public on Preprod. Your handle points to your unshielded receiving address.</p>
             </div>
-            <p class="microcopy">Runs on Midnight Preprod. Connect a wallet to register, pay, or claim.</p>
           </div>
-          <aside class="ledgercard" aria-label="What is public versus private">
-            <h3>One payment, split by what the chain can see</h3>
-            <div class="split">
-              <div class="col pub">
-                <h4>Public on-chain</h4>
-                <ul>
-                  <li>hash(username) &rarr; key</li>
-                  <li>opaque note commitment</li>
-                  <li>spent-note nullifier</li>
-                  <li>note count (volume only)</li>
-                </ul>
-              </div>
-              <div class="col priv">
-                <h4>Private witnesses</h4>
-                <ul>
-                  <li>who paid</li>
-                  <li>the amount</li>
-                  <li>which note is whose</li>
-                  <li>which note a claim spent</li>
-                </ul>
-              </div>
-            </div>
-          </aside>
         </div>
-      </div>
+      </section>
 
-      <!-- HOW IT WORKS (real three-circuit flow) -->
+      <!-- HOW IT WORKS (real two-circuit flow) -->
       <section class="band landing" id="how">
         <div class="wrap">
           <p class="kicker">How it works</p>
-          <h2 class="sec">Three circuits, one private rail</h2>
-          <p class="lead">Each step is a zero-knowledge circuit call on Midnight. Nothing here links a sender to a receiver to an amount.</p>
-          <div class="steps">
-            <div class="step">
-              <div class="n">register</div>
-              <h3>Bind your handle</h3>
-              <p>Map <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
+          <h2 class="sec">A handle and a wallet transfer</h2>
+              <p class="lead">Register your handle on-chain, then pay it from a connected wallet.</p>
+          <div class="flow">
+            <div class="flowstep">
+              <span class="flownum" aria-hidden="true">01</span>
+              <div>
+                <div class="flowtag">register</div>
+                <h3>Bind your handle</h3>
+                <p>Register a handle and your unshielded receiving address in the directory.</p>
+              </div>
             </div>
-            <div class="step pay">
-              <div class="n">pay</div>
-              <h3>Pay a handle</h3>
-              <p>Amount and payer stay private witnesses. Only an opaque commitment lands on-chain.</p>
+            <div class="flowstep pay">
+              <span class="flownum" aria-hidden="true">02</span>
+              <div>
+                <div class="flowtag">pay</div>
+                <h3>Pay a handle</h3>
+                <p>Enter a handle. ZEEP finds its address on-chain, then 1AM sends tNIGHT to it.</p>
+              </div>
             </div>
-            <div class="step">
-              <div class="n">claim</div>
-              <h3>Claim with proof</h3>
-              <p>Prove the note is yours and publish a nullifier. A second claim of the same note is rejected.</p>
-            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUCT SHOWCASE (between how-it-works and audience) -->
+      <section class="product-showcase landing" aria-labelledby="productShowcaseTitle">
+        <div class="wrap">
+          <div class="showcase-copy">
+            <p class="kicker reveal">Inside ZEEP</p>
+            <h2 class="sec showcase-title reveal" data-d="1" id="productShowcaseTitle">A clear view of your wallet.</h2>
+            <p class="showcase-lead reveal" data-d="2">Your balance, handle, and activity live together in your ZEEP dashboard.</p>
+          </div>
+          <div id="landingPreviewRoot" class="showcase-visual">
+            <img src="./macup.png" alt="ZEEP dashboard displayed on a MacBook, with balance, handle, and activity panels" />
           </div>
         </div>
       </section>
@@ -263,140 +599,288 @@
       <section class="band landing">
         <div class="wrap">
           <p class="kicker">Who it is for</p>
-          <h2 class="sec">Payments that do not doxx you</h2>
-          <div class="personas">
-            <div class="persona">
+              <h2 class="sec">A simpler way to share a handle</h2>
+          <div class="whofor">
+            <div class="who">
               <h3>Freelancers</h3>
-              <p>Put <span class="mono">@you</span> on an invoice. Clients pay it without seeing your balance or your other clients.</p>
+              <p>Reserve a short handle for your wallet before sharing it with clients.</p>
             </div>
-            <div class="persona">
+            <div class="who">
               <h3>Clients paying invoices</h3>
-              <p>Pay a handle from your wallet without the whole chain logging that you paid that person that amount.</p>
+              <p>Pay a handle after confirming its receiving address with the recipient. tNIGHT transfers are public.</p>
             </div>
-            <div class="persona">
+            <div class="who">
               <h3>Anyone proving income</h3>
-              <p>Selective disclosure of an aggregate is on the roadmap: prove a total without revealing each payment.</p>
+              <p>Selective disclosure of an aggregate remains a future feature.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- APP -->
-      <section class="band" id="app">
+      <!-- CTA (one honest action with a real destination, R-24) -->
+      <section class="band landing" id="cta">
         <div class="wrap">
-          <p class="kicker">Live on Preprod</p>
-          <h2 class="sec">Sign in</h2>
-          <p class="lead">Connect a Midnight wallet (1AM or Lace on Preprod), then register a handle, pay it, and claim. Your keys never leave the wallet.</p>
-
-          <div class="panel" id="loginGate" style="text-align: center; padding: 28px">
-            <h2 class="h">Connect your wallet to continue</h2>
-            <p class="hint" style="margin-bottom: 16px">No account, no password. ZEEP uses your Midnight wallet on Preprod.</p>
-            <button class="gold" id="gateConnect">Connect wallet</button>
+          <div class="ctacard">
+            <div class="ctavisual">
+              <p class="kicker">Get paid directly</p>
+            </div>
+            <div class="ctacopy">
+              <h2 class="sec">Put <span class="gtxt">@you</span> on your next invoice.</h2>
+              <p class="lead">One short link for clients to find your tNIGHT receiving address.</p>
+            </div>
+            <div class="ctactions">
+              <div class="ctabtns">
+                <a class="gold btn-lg" href="#/app/dashboard">Register your handle</a>
+                <a class="ghost btn-lg" href="#how">See how it works</a>
+              </div>
+            </div>
           </div>
-
-          <nav class="tabs" role="tablist" aria-label="ZEEP actions" id="appTabs" hidden>
-            <button class="tab" role="tab" id="tab-pay" aria-controls="p-pay" aria-selected="true">Pay</button>
-            <button class="tab" role="tab" id="tab-claim" aria-controls="p-claim" aria-selected="false">Claim</button>
-            <button class="tab" role="tab" id="tab-register" aria-controls="p-register" aria-selected="false">Register</button>
-            <button class="tab" role="tab" id="tab-ledger" aria-controls="p-ledger" aria-selected="false">Ledger</button>
-          </nav>
-
-          <section class="panel" id="p-pay" role="tabpanel" aria-labelledby="tab-pay">
-            <h2 class="h">Pay a handle</h2>
-            <p class="hint">The amount and your identity stay private. You get a claim code to hand the receiver.</p>
-            <div class="stack">
-              <div>
-                <label class="field" for="payUser">Recipient handle</label>
-                <div class="handle-wrap"><span>@</span><input id="payUser" autocomplete="off" spellcheck="false" placeholder="riri" /></div>
-              </div>
-              <div>
-                <label class="field" for="payAmt">Amount (private witness)</label>
-                <input class="in" id="payAmt" inputmode="numeric" placeholder="500" />
-              </div>
-              <button class="gold" id="doPay" disabled>Pay this handle</button>
-            </div>
-            <div class="status" id="payStatus" hidden></div>
-            <div class="code-out" id="payCode" hidden>
-              <div class="note" style="margin-bottom: 8px">Claim code (send to the receiver out of band):</div>
-              <div class="kv"><span class="k">code</span><span class="v mono" id="payCodeVal"></span></div>
-              <button class="ghost" id="copyCode" style="margin-top: 10px">Copy claim code</button>
-            </div>
-          </section>
-
-          <section class="panel" id="p-claim" role="tabpanel" aria-labelledby="tab-claim" hidden>
-            <h2 class="h">Claim a payment</h2>
-            <p class="hint">Paste a claim code you received. The contract proves the note is yours and blocks any second claim.</p>
-            <div class="stack">
-              <div>
-                <label class="field" for="claimCode">Claim code</label>
-                <textarea class="in" id="claimCode" rows="3" spellcheck="false" placeholder="paste the code from the payer"></textarea>
-              </div>
-              <button class="gold" id="doClaim" disabled>Claim this payment</button>
-            </div>
-            <div class="status" id="claimStatus" hidden></div>
-          </section>
-
-          <section class="panel" id="p-register" role="tabpanel" aria-labelledby="tab-register" hidden>
-            <h2 class="h">Register your handle</h2>
-            <p class="hint">Binds <span class="mono">hash(username)</span> to your receiver key. The directory entry is the only public part.</p>
-            <div class="stack">
-              <div>
-                <label class="field" for="regUser">Your handle</label>
-                <div class="handle-wrap"><span>@</span><input id="regUser" autocomplete="off" spellcheck="false" placeholder="your-handle" /></div>
-              </div>
-              <button class="gold" id="doRegister" disabled>Register this handle</button>
-            </div>
-            <div class="status" id="regStatus" hidden></div>
-          </section>
-
-          <section class="panel" id="p-ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
-            <h2 class="h">On-chain state</h2>
-            <p class="hint">What an observer can see: counts only, never links. Read live from the Preprod indexer.</p>
-            <div id="ledgerBody">
-              <div class="empty" id="ledgerEmpty">Connect a wallet to read the contract state.</div>
-            </div>
-            <button class="ghost" id="refreshLedger" style="margin-top: 14px" disabled>Refresh</button>
-          </section>
-
-          <pre class="log" id="log" aria-live="polite"></pre>
         </div>
       </section>
+
+      <!-- APP SHELL (sidebar; shown when the hash is #/app/* or #/login) -->
+      <div id="appShell" hidden>
+        <a class="app-gate-back" href="#/" aria-label="Back to ZEEP landing">&larr;</a>
+        <div class="shell">
+          <aside class="side">
+            <nav class="sidenav" id="sidenav" aria-label="ZEEP app">
+              <a class="navitem" href="#/app/dashboard" data-view="dashboard"><span class="dot"></span>Dashboard</a>
+              <a class="navitem" href="#/app/activity" data-view="activity"><span class="dot"></span>Activity</a>
+              <a class="navitem" href="#/app/settings" data-view="settings"><span class="dot"></span>Settings</a>
+            </nav>
+          </aside>
+
+          <div class="content">
+            <!-- login gate (shown until a wallet session exists) -->
+            <div class="panel" id="loginGate">
+              <div class="gate-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                  <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2" />
+                  <path d="M16 5a11 11 0 0 1 0 22 8 11 0 0 0 0-22Z" fill="currentColor" />
+                </svg>
+              </div>
+              <h2 class="h">Welcome to ZEEP</h2>
+              <p class="gate-copy">Get paid by handle with a direct wallet transfer.</p>
+              <button class="gold btn-lg gate-connect" id="gateConnect">Connect wallet</button>
+              <div class="status" id="loginStatus" role="status" hidden></div>
+              <p class="gate-note">Use your Midnight wallet to continue.</p>
+            </div>
+
+            <!-- Handle onboarding: mandatory before the app unlocks. Checks on-chain
+                 availability, then registers, then reveals the app. -->
+            <div class="panel" id="handleGate" hidden>
+              <div class="gate-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                  <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2" />
+                  <path d="M16 5a11 11 0 0 1 0 22 8 11 0 0 0 0-22Z" fill="currentColor" />
+                </svg>
+              </div>
+              <h2 class="h" id="handleGateTitle">Register your handle</h2>
+              <p class="gate-copy" id="handleGateCopy">Pick a handle so people can pay you. We check it is free, register it on-chain, and unlock the app.</p>
+              <div class="handle-wrap gate-handle-field" id="gateHandleField"><span>@</span><input id="gateHandle" autocomplete="off" spellcheck="false" placeholder="handle" aria-label="Choose your handle" /></div>
+              <button class="gold btn-lg gate-handle-submit" id="gateCreate">Register</button>
+              <div class="status" id="gateStatus" role="status" hidden style="text-align: left; max-width: 340px; margin: 14px auto 0"></div>
+            </div>
+
+            <!-- DASHBOARD (slice 2 enriches: balance + handle link) -->
+            <section class="view" id="view-dashboard" hidden>
+              <h1 class="viewtitle">Dashboard</h1>
+              <section class="herocard balcard" aria-live="polite">
+                <p class="eyebrow">Your tNIGHT balance</p>
+                <div class="balance-row">
+                  <div class="balance-copy">
+                    <p class="balbig"><span id="balanceVal">0</span> <span class="balunit">tNIGHT</span></p>
+                    <p class="handle-sub" id="balancePoolNote">Loading unshielded tNIGHT balance from 1AM.</p>
+                  </div>
+                  <div class="balance-actions" aria-label="Payment actions">
+                    <button class="iconbtn balance-action-primary" id="openSendPayment" type="button">Send tNIGHT</button>
+                    <button class="iconbtn" id="openRequestPayment" type="button">Request payment</button>
+                  </div>
+                </div>
+              </section>
+              <section class="herocard" id="handleCard" aria-live="polite"></section>
+            </section>
+
+            <!-- QR share card -->
+            <section class="qr-modal" id="qrModal" hidden role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+              <div class="qr-dialog">
+                <div class="qr-modal-head">
+                  <div><p class="kicker">Share payment link</p><h2 class="h" id="qrModalTitle">Scan to pay <span id="qrModalHandle">/@handle</span></h2></div>
+                  <button class="modal-close" id="closeQrModal" type="button" aria-label="Close QR code">&times;</button>
+                </div>
+                <div class="qr-frame" id="qrModalCode" role="img" aria-label="Payment link QR code"></div>
+                <p class="qr-route" id="qrModalRoute">/@handle</p>
+                <p class="qr-url" id="qrModalUrl">http://localhost:5173/#/pay/handle</p>
+                <div class="qr-modal-actions">
+                  <button class="ghost" id="copyQrLink" type="button">Copy link</button>
+                  <button class="gold" id="openQrLink" type="button">Open link</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- PAY / REQUEST: one dashboard modal so both actions stay beside the balance. -->
+            <section class="payment-modal" id="paymentModal" hidden role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+              <div class="payment-dialog">
+                <div class="payment-modal-head">
+                  <div><p class="kicker">Wallet actions</p><h2 class="h" id="paymentModalTitle">Send or request tNIGHT</h2></div>
+                  <button class="modal-close" id="closePaymentModal" type="button" aria-label="Close payment actions">&times;</button>
+                </div>
+                <div class="modal-tabs" role="tablist" aria-label="Wallet action">
+                  <button class="modal-tab" id="modalSendTab" type="button" role="tab" aria-selected="true">Send</button>
+                  <button class="modal-tab" id="modalRequestTab" type="button" role="tab" aria-selected="false">Request</button>
+                </div>
+                <section id="modalSendPanel" role="tabpanel">
+                  <p class="hint" id="sendHint">Enter the recipient's handle. Confirm the resolved receiving address with them before sending. tNIGHT transfers are public.</p>
+                  <p class="note" id="payCtx" hidden></p>
+                  <div class="stack">
+                    <div id="payHandleWrap" hidden>
+                      <label class="field" for="payHandle">Recipient handle</label>
+                      <input class="in" id="payHandle" autocomplete="off" spellcheck="false" placeholder="zeep" />
+                    </div>
+                    <div id="payAddressWrap">
+                      <label class="field" for="payAddress" id="payAddressLabel">Recipient unshielded address</label>
+                      <input class="in" id="payAddress" autocomplete="off" spellcheck="false" placeholder="mn_addr_preprod1..." />
+                    </div>
+                    <div>
+                      <label class="field" for="payAmt">Amount (tNIGHT)</label>
+                      <input class="in" id="payAmt" inputmode="decimal" placeholder="500" />
+                    </div>
+                    <label class="note"><input id="payAddressVerified" type="checkbox" /> <span id="payVerifyLabel">I verified this address directly with the recipient.</span></label>
+                    <button class="gold" id="doPay" disabled>Send tNIGHT</button>
+                  </div>
+                  <div class="status" id="payStatus" role="status" hidden></div>
+                </section>
+                <section id="modalRequestPanel" role="tabpanel" hidden>
+                  <p class="hint" id="requestHint">Share your handle link or unshielded address to receive tNIGHT directly.</p>
+                  <p class="note mono" id="requestReceiveAddress" style="overflow-wrap:anywhere">Connect a wallet to see your address.</p>
+                  <button class="ghost sm" id="copyRequestAddress" type="button">Copy receiving address</button>
+                  <p class="hint" id="requestLinkHint">These links include your handle and optional amount. Ask payers to confirm your receiving address.</p>
+                  <div class="stack">
+                    <div>
+                      <label class="field" for="reqLabel">Label (optional)</label>
+                      <input class="in" id="reqLabel" maxlength="40" placeholder="e.g. August invoice" />
+                    </div>
+                    <div>
+                      <label class="field">Amount</label>
+                      <div class="segduo" role="group" aria-label="Amount type">
+                        <button type="button" class="seg" id="segOpen" aria-pressed="true">Open</button>
+                        <button type="button" class="seg" id="segFixed" aria-pressed="false">Fixed</button>
+                      </div>
+                    </div>
+                    <div id="reqAmtWrap" hidden>
+                      <label class="field" for="reqAmt">Fixed amount (tNIGHT)</label>
+                      <input class="in" id="reqAmt" inputmode="decimal" placeholder="500" />
+                    </div>
+                    <button class="gold" id="doCreateReq" disabled>Create request link</button>
+                  </div>
+                  <p class="note" id="reqNeedHandle" hidden style="margin-top: 12px">Register a handle first to create request links.</p>
+                  <div class="status" id="reqStatus" role="status" hidden></div>
+                  <div class="modal-request-list" id="reqList"><div class="empty">No request links yet.</div></div>
+                </section>
+              </div>
+            </section>
+
+            <!-- ACTIVITY (human-readable payment history) -->
+            <section class="view" id="view-activity" hidden>
+              <h1 class="viewtitle">Activity</h1>
+              <section class="panel">
+                <div class="activity-head">
+                  <div><h2 class="h">Recent activity</h2><p class="hint">Submitted actions from this browser. Incoming tNIGHT appears in your wallet balance; this feed does not import the wallet's full history yet.</p></div>
+                  <span class="activity-badge">Wallet activity</span>
+                </div>
+                <div class="activity-kpis" aria-label="Activity summary">
+                  <div class="activity-kpi"><div class="label">Sent</div><div class="value" id="actSent">0</div></div>
+                  <div class="activity-kpi"><div class="label">Received</div><div class="value" id="actReceived">0</div></div>
+                  <div class="activity-kpi"><div class="label">Activity</div><div class="value" id="actTotal">0</div></div>
+                </div>
+                <div id="actFeed"><div class="empty">No activity yet. Register or pay to see it here.</div></div>
+              </section>
+            </section>
+
+            <!-- SETTINGS -->
+            <section class="view" id="view-settings" hidden>
+              <h1 class="viewtitle">Settings</h1>
+
+              <section class="panel">
+                <h2 class="h">Profile</h2>
+                <div id="profileBody"><div class="empty">Connect a wallet to load your profile.</div></div>
+              </section>
+
+            </section>
+          </div>
+        </div>
+      </div>
 
       <!-- FAQ (real, product-specific) -->
       <section class="band landing" id="faq">
         <div class="wrap">
           <p class="kicker">FAQ</p>
-          <h2 class="sec">What the chain can and cannot see</h2>
-          <details class="faq">
-            <summary>What can an observer learn?</summary>
-            <p>That a payment happened, the total note count, and the public username directory. Never who paid, how much, which receiver a note belongs to, or which note a claim spent.</p>
-          </details>
-          <details class="faq">
-            <summary>Why is the username directory public?</summary>
-            <p>Discoverability is the product: you share a handle so people can pay it. Privacy lives in the note, commitment, and nullifier layer, not in the directory.</p>
-          </details>
-          <details class="faq">
-            <summary>How is a double claim blocked without a public balance table?</summary>
-            <p>Claiming a note publishes a nullifier derived from your secret and the note. A second claim of the same note recomputes the same nullifier, which is already present, so the contract rejects it.</p>
-          </details>
-          <details class="faq">
-            <summary>How does the receiver learn a note is theirs?</summary>
-            <p>In this MVP the payer hands over a claim code out of band (the commitment plus amount and salt). On-chain encrypted payloads are a planned upgrade.</p>
-          </details>
-          <details class="faq">
-            <summary>Is this audited?</summary>
-            <p>No. ZEEP runs on Midnight Preprod (testnet) and is not audited. Do not use it with real funds.</p>
-          </details>
+          <h2 class="sec">Questions people ask</h2>
+          <div class="faqlist">
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">What does ZEEP do?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>ZEEP maps a handle to a tNIGHT receiving address on-chain. Enter a handle, review its address, then approve the wallet transfer.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">Do I need an account?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>No password or email. Connect a Midnight wallet, then register a handle. Keep access to that wallet to receive payments.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">What can people see on-chain?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>The directory publishes handle hashes and receiving addresses. Native tNIGHT is unshielded, so payment amounts and destinations are visible on-chain.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">Can someone pay by typing only my handle?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>Yes. Enter their handle in Send or open their payment link. ZEEP resolves the address on-chain. Confirm that address with the recipient before approving.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">Can I register another handle?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>The directory allows one handle per supplied address. Its demo contract cannot prove the registrant owns that address, so a direct caller could claim someone else's address.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">What does ZEEP use as my identity?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>ZEEP reads your unshielded address from 1AM and uses it to find your registered handle. The app checks a wallet signature when you register; the contract itself cannot verify that signature yet.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">When does the recipient get the tNIGHT?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>A handle payment reaches the recipient's unshielded wallet after network confirmation. There is no ZEEP claim step. Check the confirmed transaction and recipient balance.</p></div></div>
+            </div>
+            <div class="faqitem">
+              <button class="faqq" type="button" aria-expanded="false">Are there network fees?<span class="mk" aria-hidden="true">+</span></button>
+              <div class="faqa"><div><p>Your wallet handles the network fee when you register or send. The app shows an error if the wallet has no usable balance for the transfer.</p></div></div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
     <footer>
-      <div class="wrap">
-        Contract (Midnight Preprod):
-        <span class="mono" id="addr">b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5</span>.
-        <a id="verify" href="#" role="button">Verify on the indexer</a>.
-        Not audited, testnet only. Selective disclosure is planned, not yet shipped.
+      <div class="wrap footinner">
+        <div>
+          <div class="fbrand">
+            <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true">
+              <circle cx="11" cy="11" r="9" fill="none" stroke="var(--gold-solid)" stroke-width="1.5" />
+              <path d="M11 2 a9 9 0 0 1 0 18 a6 9 0 0 0 0 -18" fill="var(--gold-solid)" />
+            </svg>
+            <span>ZEEP</span>
+          </div>
+          <p class="fnote">Direct payment rail on Midnight. Get paid by a username without sharing a long address.</p>
+        </div>
+        <nav class="flinks" aria-label="Product">
+          <h3>Product</h3>
+          <a href="#how">How it works</a>
+          <a href="#faq">FAQ</a>
+          <a href="#/app/dashboard">Open the app</a>
+        </nav>
+        <div>
+          <h3>Contract</h3>
+          <span class="mono fmono" id="addr">configured at runtime</span>
+          <a id="verify" href="#" target="_blank" rel="noopener" class="flink">View contract in explorer</a>
+        </div>
+      </div>
+      <div class="wrap fbar">
+        <span>&copy; 2026 ZEEP</span>
+        <span>Payments go directly to the recipient's wallet.</span>
       </div>
     </footer>
 

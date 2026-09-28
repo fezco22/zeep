@@ -10,6 +10,6 @@ export const CompiledZeepContract = CompiledContract.make<ZeepContract>(
   "Zeep",
   Zeep.Contract as unknown as new (w: typeof witnesses) => ZeepContract,
 ).pipe(
-  CompiledContract.withWitnesses(witnesses),
+  CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets("./managed/zeep"),
 );

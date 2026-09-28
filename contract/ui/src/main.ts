@@ -1,3 +1,4 @@
+import "./polyfills";
 import { detectWallets, deployZeep, type Wallet, type Logger } from "./deploy";
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -12,6 +13,8 @@ const addrEl = $<HTMLDivElement>("addr");
 
 let wallets: Wallet[] = [];
 let selected: Wallet | undefined;
+let connectedApi: DAppConnectorConnectedAPI | undefined;
+let connectedWalletId = "";
 
 const log: Logger = (line) => {
   const ts = new Date().toISOString().slice(11, 19);
@@ -32,6 +35,7 @@ function refreshWallets() {
     opt.textContent = "No Midnight wallet detected";
     walletSel.appendChild(opt);
     connectBtn.disabled = true;
+    setStatus("No Midnight wallet detected. Open this page in Brave with 1AM enabled.");
     return;
   }
   for (const w of wallets) {
@@ -46,29 +50,55 @@ function refreshWallets() {
 
 walletSel.addEventListener("change", () => {
   selected = wallets.find((w) => w.id === walletSel.value);
+  connectedApi = undefined;
+  connectedWalletId = "";
+  deployBtn.disabled = true;
+  setStatus("Wallet selected. Connect to continue.");
 });
 
-connectBtn.addEventListener("click", () => {
+connectBtn.addEventListener("click", async () => {
   if (!selected) return;
-  deployBtn.disabled = false;
-  setStatus(`ready — ${selected.name}`);
-  log(`Selected wallet: ${selected.name}. Click "Deploy ZEEP" to proceed.`);
+  const wallet = selected;
+  connectBtn.disabled = true;
+  deployBtn.disabled = true;
+  setStatus("connecting...");
+  log(`Connecting to ${wallet.name} on preprod...`);
+  try {
+    const api = await wallet.api.connect("preprod");
+    const status = await api.getConnectionStatus();
+    const config = await api.getConfiguration();
+    const network = String(config.networkId ?? status.networkId ?? "");
+    if (network !== "preprod") throw new Error(`1AM connected to ${network || "an unknown network"}. Switch to Preprod and reconnect.`);
+    if (selected?.id !== wallet.id) return;
+    connectedApi = api;
+    connectedWalletId = wallet.id;
+    deployBtn.disabled = false;
+    setStatus("ready to deploy v3 on Preprod");
+    log(`Connected to ${wallet.name} on ${network}. V3 resolves handles to unshielded addresses; registration ownership is checked by this UI, not enforced on-chain.`);
+  } catch (err) {
+    connectedApi = undefined;
+    connectedWalletId = "";
+    setStatus("connection failed");
+    log(`Connect failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    connectBtn.disabled = false;
+  }
 });
 
 deployBtn.addEventListener("click", async () => {
-  if (!selected) return;
+  if (!selected || !connectedApi || connectedWalletId !== selected.id) return;
   deployBtn.disabled = true;
   connectBtn.disabled = true;
   setStatus("deploying...");
   try {
-    const address = await deployZeep(selected, log);
+    const address = await deployZeep(selected, log, connectedApi);
     setStatus("deployed ✓");
     addrEl.textContent = address;
     resultCard.classList.remove("hidden");
     try {
       localStorage.setItem(
         "zeep.deployed",
-        JSON.stringify({ network: "preprod", contractAddress: address, deployedAt: new Date().toISOString() }),
+        JSON.stringify({ version: "v3", network: "preprod", contractAddress: address, deployedAt: new Date().toISOString() }),
       );
     } catch {
       /* localStorage may be blocked; the address is shown on-screen regardless */

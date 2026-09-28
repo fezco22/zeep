@@ -1,0 +1,15 @@
+{
+  "name": "@zeep/bip340-experiment",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test bip340.test.mjs"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.19.0"
+  },
+  "devDependencies": {
+    "@midnight-ntwrk/ledger-v8": "8.1.0",
+    "@noble/curves": "2.4.0"
+  }
+}

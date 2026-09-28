@@ -1,0 +1,33 @@
+pragma language_version >= 0.19;
+import CompactStandardLibrary;
+
+// ZEEP v2 — a public handle directory plus direct shielded transfers.
+// The owner secret is a client witness. This directory cannot authenticate
+// wallet ownership against direct contract callers.
+export ledger usernames: Map<Bytes<32>, Bytes<32>>;
+export ledger walletHandles: Map<Bytes<32>, Bytes<32>>;
+export ledger handleNames: Map<Bytes<32>, Bytes<32>>;
+export ledger recipientCoins: Map<Bytes<32>, Bytes<32>>;
+export ledger recipientEncryptions: Map<Bytes<32>, Bytes<32>>;
+
+witness ownerSecret(): Bytes<32>;
+
+pure circuit ownerId(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Bytes<32>>(secret);
+}
+
+export circuit register(
+  nameHash: Bytes<32>,
+  nameBytes: Bytes<32>,
+  coinPublicKey: Bytes<32>,
+  encryptionPublicKey: Bytes<32>,
+): [] {
+  const owner = ownerId(ownerSecret());
+  assert(!usernames.member(disclose(nameHash)), "handle already registered");
+  assert(!walletHandles.member(disclose(owner)), "wallet already has a handle");
+  usernames.insert(disclose(nameHash), disclose(owner));
+  walletHandles.insert(disclose(owner), disclose(nameHash));
+  handleNames.insert(disclose(nameHash), disclose(nameBytes));
+  recipientCoins.insert(disclose(nameHash), disclose(coinPublicKey));
+  recipientEncryptions.insert(disclose(nameHash), disclose(encryptionPublicKey));
+}

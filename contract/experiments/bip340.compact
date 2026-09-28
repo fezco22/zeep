@@ -1,0 +1,85 @@
+pragma language_version >= 0.26;
+import CompactStandardLibrary;
+
+// Research circuit for the 1AM unshielded BIP340 key. Ledger 9 / ZKIR v3 only.
+// This is not yet wired into the Preprod ZEEP contract.
+export ledger usernames: Map<Bytes<32>, Bytes<32>>;
+export ledger walletHandles: Map<Bytes<32>, Bytes<32>>;
+export ledger handleNames: Map<Bytes<32>, Bytes<32>>;
+export ledger recipientAddresses: Map<Bytes<32>, Bytes<32>>;
+
+circuit reverse32(input: Bytes<32>): Bytes<32> {
+  return Bytes[
+    input[31], input[30], input[29], input[28], input[27], input[26], input[25], input[24],
+    input[23], input[22], input[21], input[20], input[19], input[18], input[17], input[16],
+    input[15], input[14], input[13], input[12], input[11], input[10], input[9], input[8],
+    input[7], input[6], input[5], input[4], input[3], input[2], input[1], input[0]
+  ];
+}
+
+export circuit verifyWalletSignature(
+  message: Bytes<32>,
+  verifyingKey: Bytes<32>,
+  signatureR: Bytes<32>,
+  signatureS: Bytes<32>,
+  publicPoint: Secp256k1Point,
+  noncePoint: Secp256k1Point,
+  curveB: Secp256k1Base,
+): Bytes<32> {
+  assert(publicPoint != default<Secp256k1Point>, "invalid public point");
+  assert(noncePoint != default<Secp256k1Point>, "invalid nonce point");
+  const px = secp256k1PointX(publicPoint);
+  const py = secp256k1PointY(publicPoint);
+  const rx = secp256k1PointX(noncePoint);
+  const ry = secp256k1PointY(noncePoint);
+  assert(curveB as Bytes<32> == Bytes[7, ...pad(31, "")], "invalid curve coefficient");
+  assert(py * py == px * px * px + curveB, "public point not on curve");
+  assert(ry * ry == rx * rx * rx + curveB, "nonce point not on curve");
+  assert(reverse32(secp256k1PointX(publicPoint) as Bytes<32>) == verifyingKey, "key mismatch");
+  assert(reverse32(secp256k1PointX(noncePoint) as Bytes<32>) == signatureR, "signature r mismatch");
+  const tag = persistentHash<Bytes<17>>("BIP0340/challenge");
+  // Midnight ledger-v8 signData first SHA256-hashes the supplied bytes.
+  const messageHash = persistentHash<Bytes<32>>(message);
+  const challengeBytes = persistentHash<Bytes<160>>(
+    Bytes[...tag, ...tag, ...signatureR, ...verifyingKey, ...messageHash]
+  );
+  const challenge = reverse32(challengeBytes) as Secp256k1Scalar;
+  const scalarS = reverse32(signatureS) as Secp256k1Scalar;
+  assert(
+    ecAdd(noncePoint, ecMul(publicPoint, challenge)) == ecMulGenerator(scalarS),
+    "invalid wallet signature"
+  );
+  return persistentHash<Bytes<32>>(verifyingKey);
+}
+
+export circuit register(
+  nameBytes: Bytes<32>,
+  recipientAddress: Bytes<32>,
+  verifyingKey: Bytes<32>,
+  signatureR: Bytes<32>,
+  signatureS: Bytes<32>,
+  publicPoint: Secp256k1Point,
+  noncePoint: Secp256k1Point,
+  curveB: Secp256k1Base,
+): [] {
+  const nameHash = persistentHash<Bytes<32>>(nameBytes);
+  assert(recipientAddress != default<Bytes<32>>, "invalid recipient");
+  const message = persistentHash<Bytes<128>>(
+    Bytes[
+      ...pad(32, "ZEEP/register/v4/preprod"),
+      ...kernel.self().bytes,
+      ...nameHash,
+      ...recipientAddress
+    ]
+  );
+  const verifiedAddress = verifyWalletSignature(
+    message, verifyingKey, signatureR, signatureS, publicPoint, noncePoint, curveB
+  );
+  assert(verifiedAddress == recipientAddress, "wallet does not own recipient");
+  assert(!usernames.member(disclose(nameHash)), "handle already registered");
+  assert(!walletHandles.member(disclose(verifiedAddress)), "wallet already has handle");
+  usernames.insert(disclose(nameHash), disclose(verifiedAddress));
+  walletHandles.insert(disclose(verifiedAddress), disclose(nameHash));
+  handleNames.insert(disclose(nameHash), disclose(nameBytes));
+  recipientAddresses.insert(disclose(nameHash), disclose(recipientAddress));
+}

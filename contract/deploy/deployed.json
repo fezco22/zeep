@@ -1,6 +1,9 @@
 {
   "network": "preprod",
-  "contractAddress": "b9991bc137ebbea65a1129f375992a051b5fbd52c0e0508a1351e7030c54c0d5",
-  "txId": "0x84b7773c152d4ef5cf477b4caf70ddf2823b048a03877a2295660d212790d399",
-  "deployedAt": "2026-09-20T18:33:00.306Z"
+  "version": "v3",
+  "contractAddress": "5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538",
+  "submissionId": "008cedf2c921b5d786ca3fc5a0d01f27c8ef833f855522ddd13f9a78cf120319bf",
+  "txHash": "da2509a84c012e851213d177f11e6c7695c15dc9c97793e777168263b28bb45a",
+  "blockHeight": 2750168,
+  "deployedAt": "2026-09-28T18:04:42.000Z"
 }

@@ -40,6 +40,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ["object-inspect", "@subsquid/scale-codec", "@subsquid/util-internal-hex", "@subsquid/util-internal-json"],
     exclude: [
       "@midnight-ntwrk/compact-runtime",
       "@midnight-ntwrk/onchain-runtime-v3",
@@ -51,5 +52,11 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
+    rollupOptions: {
+      input: {
+        app: fileURLToPath(new URL("./index.html", import.meta.url)),
+        deploy: fileURLToPath(new URL("./deploy.html", import.meta.url)),
+      },
+    },
   },
 });

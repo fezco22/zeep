@@ -1,0 +1,15 @@
+# Keep local credentials and agent/tool state out of CLI source uploads.
+.*
+**/.env*
+**/.tmp*
+**/.compact-bin/
+**/managed/
+**/node_modules/
+/graphify-out/
+/contract/logs/
+/contract/ui/dist/
+/contract/ui/public/zk/
+/contract/experiments/managed-*/
+/agent/
+/data/
+/skills/
