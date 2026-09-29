@@ -4,7 +4,7 @@
 
 **Send tNIGHT to a person by handle.** ZEEP resolves a public handle through a Midnight Preprod directory, then asks the connected 1AM wallet to send native tNIGHT to the mapped unshielded address. ZEEP does not custody funds.
 
-[Open the live app](https://zeep-pink.vercel.app/) · [View the Preprod directory](https://explorer.1am.xyz/contract/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538?network=preprod)
+[Open the live app](https://zeep-pink.vercel.app/) · [View the Preprod directory](https://explorer.1am.xyz/contract/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538?network=preprod) · [Follow Zeep on X](https://x.com/paywithzeep)
 
 ## How a payment works
 

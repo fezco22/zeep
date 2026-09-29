@@ -481,6 +481,9 @@
       .fnote { margin: 10px 0 0; max-width: 36ch; line-height: 1.55; }
       .fmono { display: block; word-break: break-all; margin-bottom: 10px; color: var(--text); }
       .fbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 0; border-top: 1px solid var(--line); font-size: 12px; }
+      .fbar-links { display: flex; align-items: center; gap: 18px; }
+      .fbar-links a { color: var(--text); text-decoration: none; }
+      .fbar-links a:hover { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
 
       @media (max-width: 760px) {
         .navlinks { display: none; }
@@ -880,6 +883,10 @@
       </div>
       <div class="wrap fbar">
         <span>&copy; 2026 ZEEP</span>
+        <nav class="fbar-links" aria-label="ZEEP links">
+          <a href="https://x.com/paywithzeep" target="_blank" rel="noopener noreferrer">X</a>
+          <a href="https://github.com/fezco22/zeep" target="_blank" rel="noopener noreferrer">GitHub repository</a>
+        </nav>
         <span>Payments go directly to the recipient's wallet.</span>
       </div>
     </footer>
