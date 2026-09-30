@@ -4,7 +4,7 @@
 
 **Send tNIGHT to a person by handle.** ZEEP resolves a public handle through a Midnight Preprod directory, then asks the connected 1AM wallet to send native tNIGHT to the mapped unshielded address. ZEEP does not custody funds.
 
-[Open the live app](https://zeep-pink.vercel.app/) · [View the Preprod directory](https://explorer.1am.xyz/contract/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538?network=preprod) · [Follow Zeep on X](https://x.com/paywithzeep)
+[Open the live app](https://zeep-pink.vercel.app/) · [Watch the demo](https://youtu.be/qFB_gHRHPck) · [View the Preprod directory](https://midnight-preprod.subscan.io/account/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538) · [Follow Zeep on X](https://x.com/paywithzeep)
 
 ## How a payment works
 
@@ -21,7 +21,7 @@ View the [standalone payment-flow diagram](docs/transfer-flow.html).
 - Prepare and submit a native tNIGHT transfer with the connected 1AM wallet.
 - Show wallet-specific activity for actions the app can associate with the connected wallet.
 
-An example 100 tNIGHT transfer is available on the [Preprod explorer](https://explorer.1am.xyz/tx/2054f9abb2cd7e122e3816a63491b9b6b6d9e6dc2dd9649a3af20b517fa08223?network=preprod).
+An example 100 tNIGHT transfer is available on [Midnight Preprod Subscan](https://midnight-preprod.subscan.io/extrinsic/2054f9abb2cd7e122e3816a63491b9b6b6d9e6dc2dd9649a3af20b517fa08223).
 
 ## Network and deployment
 
@@ -29,7 +29,7 @@ An example 100 tNIGHT transfer is available on the [Preprod explorer](https://ex
 | --- | --- |
 | App | [zeep-pink.vercel.app](https://zeep-pink.vercel.app/) |
 | Network | Midnight Preprod |
-| Directory contract | [`5bc1b71c…556a6538`](https://explorer.1am.xyz/contract/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538?network=preprod) |
+| Directory contract | [`5bc1b71c…556a6538`](https://midnight-preprod.subscan.io/account/5bc1b71c7246a21c5502ff673493a6d6beb9e31c1b18b0508efb9dfe556a6538) |
 | Wallet | 1AM |
 | CI | [GitHub Actions](https://github.com/fezco22/zeep/actions/workflows/ci.yml) |
 
